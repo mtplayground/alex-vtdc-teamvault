@@ -260,6 +260,107 @@ export async function getWorkspaceMembership(
   return row ? mapMembership(row) : null;
 }
 
+export async function listWorkspaceMembers(db: Queryable, workspaceId: string) {
+  const result = await db.query(
+    `
+      SELECT
+        u.sub,
+        u.name,
+        u.email,
+        u.picture_url,
+        wm.role,
+        wm.created_at AS joined_at
+      FROM workspace_memberships wm
+      JOIN users u ON u.sub = wm.user_sub
+      WHERE wm.workspace_id = $1
+      ORDER BY
+        CASE wm.role WHEN 'owner' THEN 1 WHEN 'member' THEN 2 ELSE 3 END,
+        lower(u.email::TEXT)
+    `,
+    [workspaceId],
+  );
+
+  return result.rows.map((row) => ({
+    sub: row.sub,
+    name: row.name,
+    email: row.email,
+    pictureUrl: row.picture_url,
+    role: row.role as WorkspaceRole,
+    joinedAt: row.joined_at,
+  }));
+}
+
+export async function listPendingWorkspaceInvitations(db: Queryable, workspaceId: string) {
+  const result = await db.query(
+    `
+      SELECT id, email, role, expires_at, created_at
+      FROM invitations
+      WHERE workspace_id = $1
+        AND status = 'pending'
+        AND expires_at > NOW()
+      ORDER BY created_at DESC
+    `,
+    [workspaceId],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    email: row.email,
+    role: row.role as Exclude<WorkspaceRole, "owner">,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function countWorkspaceOwners(db: Queryable, workspaceId: string): Promise<number> {
+  const result = await db.query(
+    `
+      SELECT COUNT(*)::INT AS owner_count
+      FROM workspace_memberships
+      WHERE workspace_id = $1 AND role = 'owner'
+    `,
+    [workspaceId],
+  );
+
+  return result.rows[0]?.owner_count ?? 0;
+}
+
+export async function updateWorkspaceMemberRole(
+  db: Queryable,
+  input: { workspaceId: string; userSub: string; role: WorkspaceRole },
+): Promise<WorkspaceMembershipRecord | null> {
+  const result = await db.query(
+    `
+      UPDATE workspace_memberships
+      SET role = $3,
+          updated_at = NOW()
+      WHERE workspace_id = $1 AND user_sub = $2
+      RETURNING *
+    `,
+    [input.workspaceId, input.userSub, input.role],
+  );
+
+  const row = result.rows[0];
+  return row ? mapMembership(row) : null;
+}
+
+export async function deleteWorkspaceMember(
+  db: Queryable,
+  input: { workspaceId: string; userSub: string },
+): Promise<WorkspaceMembershipRecord | null> {
+  const result = await db.query(
+    `
+      DELETE FROM workspace_memberships
+      WHERE workspace_id = $1 AND user_sub = $2
+      RETURNING *
+    `,
+    [input.workspaceId, input.userSub],
+  );
+
+  const row = result.rows[0];
+  return row ? mapMembership(row) : null;
+}
+
 export async function createProject(
   db: Queryable,
   input: { workspaceId: string; name: string; createdBySub?: string | null },

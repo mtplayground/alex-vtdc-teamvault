@@ -3,6 +3,8 @@ import type {
   AppShellData,
   CreateInvitationResponse,
   CreateWorkspaceResponse,
+  RosterMember,
+  RosterResponse,
   Role,
   SessionData,
   WorkspaceListResponse,
@@ -125,6 +127,44 @@ const previewSessionData: SessionData = {
     email: "owner@example.com",
     pictureUrl: null,
   },
+};
+
+const rosterPreviewData: RosterResponse = {
+  members: [
+    {
+      sub: "preview-owner",
+      name: "Avery Hart",
+      email: "avery@example.com",
+      pictureUrl: null,
+      role: "owner",
+      joinedAt: new Date().toISOString(),
+    },
+    {
+      sub: "preview-member",
+      name: "Mira Lee",
+      email: "mira@example.com",
+      pictureUrl: null,
+      role: "member",
+      joinedAt: new Date().toISOString(),
+    },
+    {
+      sub: "preview-guest",
+      name: "Jon Bell",
+      email: "jon@example.com",
+      pictureUrl: null,
+      role: "guest",
+      joinedAt: new Date().toISOString(),
+    },
+  ],
+  pendingInvitations: [
+    {
+      id: "preview-invitation",
+      email: "pending@example.com",
+      role: "guest",
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ],
 };
 
 export const apiClient = {
@@ -254,5 +294,49 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ token }),
     });
+  },
+
+  async getRoster(workspaceId: string): Promise<RosterResponse> {
+    if (import.meta.env.DEV) {
+      return rosterPreviewData;
+    }
+
+    return request<RosterResponse>(`/workspaces/${workspaceId}/roster`);
+  },
+
+  async updateMemberRole(input: { workspaceId: string; userSub: string; role: Role }): Promise<RosterMember> {
+    if (import.meta.env.DEV) {
+      const member = rosterPreviewData.members.find((item) => item.sub === input.userSub) ?? rosterPreviewData.members[0];
+      return {
+        ...member,
+        role: input.role,
+      };
+    }
+
+    return request<RosterMember>(
+      `/workspaces/${input.workspaceId}/members/${encodeURIComponent(input.userSub)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ role: input.role }),
+      },
+    );
+  },
+
+  async removeMember(input: { workspaceId: string; userSub: string }): Promise<void> {
+    if (import.meta.env.DEV) {
+      return;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/workspaces/${input.workspaceId}/members/${encodeURIComponent(input.userSub)}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    }
   },
 };
