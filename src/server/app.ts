@@ -5,6 +5,7 @@ import { dbPool } from "./db/pool";
 import { errorHandler, notFound } from "./errors";
 import { createAppShellRouter } from "./routes/app-shell";
 import { createAuthRouter } from "./routes/auth";
+import { createDocumentsRouter } from "./routes/documents";
 import { createHealthRouter } from "./routes/health";
 import { createInvitationsRouter } from "./routes/invitations";
 import { createProjectsRouter } from "./routes/projects";
@@ -45,6 +46,7 @@ export function createApp() {
   apiRouter.use(createInvitationsRouter(dbPool));
   apiRouter.use(createRosterRouter(dbPool));
   apiRouter.use(createProjectsRouter(dbPool));
+  apiRouter.use(createDocumentsRouter(dbPool));
   apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);

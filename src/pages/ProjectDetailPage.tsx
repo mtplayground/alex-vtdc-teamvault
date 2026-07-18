@@ -1,14 +1,33 @@
-import { Archive, ArrowLeft, Edit3, FolderOpen, Lock } from "lucide-react";
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { Archive, ArrowLeft, FileImage, FileText, FileUp, FolderOpen, Lock } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useAppShellQuery, useArchiveProjectMutation, useProjectQuery } from "../api/queries";
+import {
+  useAppShellQuery,
+  useArchiveProjectMutation,
+  useDocumentsQuery,
+  useProjectQuery,
+  useUploadDocumentMutation,
+} from "../api/queries";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { useToast } from "../components/ui/Toast";
+import type { DocumentSummary } from "../types/domain";
+
+const maxUploadBytes = 10 * 1024 * 1024;
+const allowedTypes = new Set(["application/pdf", "image/gif", "image/jpeg", "image/png", "image/webp"]);
 
 function formatDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 export function ProjectDetailPage() {
@@ -17,8 +36,12 @@ export function ProjectDetailPage() {
   const { data } = useAppShellQuery();
   const workspaceId = data?.workspace?.id;
   const project = useProjectQuery(workspaceId, projectId);
+  const documents = useDocumentsQuery(workspaceId, projectId);
+  const uploadDocument = useUploadDocumentMutation(workspaceId, projectId);
   const archiveProject = useArchiveProjectMutation(workspaceId);
   const { notify } = useToast();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   if (!data?.workspace || project.isLoading) {
     return <LoadingState title="Loading project" detail="Preparing project details." />;
@@ -40,6 +63,7 @@ export function ProjectDetailPage() {
   }
 
   const canManageProjects = data.workspace.permissions.includes("projects.manage");
+  const canUploadDocuments = data.workspace.permissions.includes("documents.upload");
   const currentProject = project.data.project;
 
   async function onArchive() {
@@ -54,6 +78,57 @@ export function ProjectDetailPage() {
     } catch {
       notify("Project could not be archived.", "error");
     }
+  }
+
+  async function uploadFile(file: File) {
+    if (!workspaceId || !projectId) {
+      return;
+    }
+
+    if (!allowedTypes.has(file.type)) {
+      notify("Only PDF and image files can be uploaded.", "error");
+      return;
+    }
+
+    if (file.size > maxUploadBytes) {
+      notify("Uploaded files must be 10 MB or smaller.", "error");
+      return;
+    }
+
+    try {
+      await uploadDocument.mutateAsync({ workspaceId, projectId, file });
+      notify("Document uploaded.", "success");
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    } catch {
+      notify("Document could not be uploaded.", "error");
+    }
+  }
+
+  function onFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      void uploadFile(file);
+    }
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+
+    if (!canUploadDocuments) {
+      return;
+    }
+
+    const file = event.dataTransfer.files[0];
+    if (file) {
+      void uploadFile(file);
+    }
+  }
+
+  function DocumentIcon({ document }: { document: DocumentSummary }) {
+    return document.kind === "pdf" ? <FileText size={18} /> : <FileImage size={18} />;
   }
 
   return (
@@ -92,17 +167,81 @@ export function ProjectDetailPage() {
       </section>
 
       <EmptyState
-        title="Documents will appear here"
-        detail="This page is ready for the document workflow to attach uploads, reviews, and guest access to the project."
+        title={canUploadDocuments ? "Upload project documents" : "Project documents"}
+        detail={
+          canUploadDocuments
+            ? "Add one PDF or image at a time. Files must be 10 MB or smaller."
+            : "Guests can view documents made available in this project."
+        }
         action={
-          canManageProjects ? (
-            <Link className="button button--secondary button--md" to="/projects">
-              <Edit3 size={16} />
-              Manage project
-            </Link>
+          canUploadDocuments ? (
+            <Button onClick={() => inputRef.current?.click()} disabled={uploadDocument.isPending}>
+              <FileUp size={16} />
+              {uploadDocument.isPending ? "Uploading" : "Choose file"}
+            </Button>
           ) : null
         }
       />
+
+      <input
+        ref={inputRef}
+        className="sr-only"
+        type="file"
+        accept="application/pdf,image/png,image/jpeg,image/gif,image/webp"
+        onChange={onFileChange}
+      />
+
+      <div
+        className={`upload-zone${isDragging ? " upload-zone--active" : ""}${!canUploadDocuments ? " upload-zone--disabled" : ""}`}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={onDrop}
+      >
+        <FileUp size={22} />
+        <div>
+          <strong>{canUploadDocuments ? "Drop a PDF or image here" : "Upload disabled for your role"}</strong>
+          <p>{canUploadDocuments ? "PDF, PNG, JPG, GIF, or WebP up to 10 MB." : "Guests can view and download only."}</p>
+        </div>
+      </div>
+
+      <section className="list-panel" aria-label="Project documents">
+        {documents.isLoading ? (
+          <article className="list-row">
+            <div>
+              <h3>Loading documents</h3>
+              <p>Preparing project files.</p>
+            </div>
+          </article>
+        ) : documents.data?.documents.length ? (
+          documents.data.documents.map((document) => (
+            <article className="list-row" key={document.id}>
+              <div className="document-link">
+                <DocumentIcon document={document} />
+                <div>
+                  <h3>{document.originalFilename}</h3>
+                  <p>
+                    {formatBytes(document.sizeBytes)} · Uploaded {formatDate(document.uploadedAt)}
+                  </p>
+                </div>
+              </div>
+              <span className="permission-note">
+                {document.uploaderName ?? document.uploaderEmail ?? "Unknown uploader"}
+              </span>
+            </article>
+          ))
+        ) : (
+          <article className="list-row">
+            <div>
+              <h3>No documents in this project</h3>
+              <p>Uploaded PDFs and images will appear here.</p>
+            </div>
+          </article>
+        )}
+      </section>
     </div>
   );
 }

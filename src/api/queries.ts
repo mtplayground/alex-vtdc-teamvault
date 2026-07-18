@@ -148,3 +148,26 @@ export function useArchiveProjectMutation(workspaceId?: string) {
     },
   });
 }
+
+export function useDocumentsQuery(workspaceId?: string, projectId?: string) {
+  return useQuery({
+    queryKey: ["documents", workspaceId, projectId],
+    queryFn: () => apiClient.listDocuments({ workspaceId: workspaceId!, projectId: projectId! }),
+    enabled: Boolean(workspaceId && projectId),
+  });
+}
+
+export function useUploadDocumentMutation(workspaceId?: string, projectId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: apiClient.uploadDocument,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["documents", workspaceId, projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["project", workspaceId, projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["projects", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+    },
+  });
+}
