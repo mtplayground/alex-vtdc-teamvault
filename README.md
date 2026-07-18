@@ -16,3 +16,11 @@ The development server listens on `0.0.0.0:8080`.
 ```bash
 npm run build
 ```
+
+## Database
+
+Persistent state uses PostgreSQL. Set `DATABASE_URL` in the environment before running migrations.
+
+```bash
+npm run db:migrate
+```
