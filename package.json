@@ -9,6 +9,7 @@
     "api:start": "tsx src/server/index.ts",
     "build": "tsc --noEmit && vite build",
     "db:migrate": "node scripts/migrate.mjs",
+    "test:e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0 --port 8080"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
