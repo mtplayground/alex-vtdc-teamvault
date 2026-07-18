@@ -1,15 +1,19 @@
 import { PropsWithChildren } from "react";
-import { Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAppShellQuery } from "../../api/queries";
 import { Button } from "../ui/Button";
 import { LoadingState } from "../ui/LoadingState";
 import { RoleBadge } from "../ui/RoleBadge";
 import { SideNav } from "./SideNav";
 import { useAppState } from "../../state/AppState";
+import { useAuth } from "../../state/AuthContext";
 
 export function AppLayout({ children }: PropsWithChildren) {
   const { data, isLoading } = useAppShellQuery();
   const { toggleSidebar } = useAppState();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   if (isLoading || !data) {
     return <LoadingState title="Preparing workspace" detail="Loading layout and workspace context." />;
@@ -38,6 +42,17 @@ export function AppLayout({ children }: PropsWithChildren) {
               <span>{data.currentUser.name}</span>
               <small>{data.currentUser.email}</small>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Sign out"
+              onClick={async () => {
+                await signOut();
+                navigate("/login", { replace: true });
+              }}
+            >
+              <LogOut size={18} />
+            </Button>
           </div>
         </header>
         <main className="content-area">{children}</main>

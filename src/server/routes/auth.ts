@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { Pool } from "pg";
 import { z } from "zod";
 import { config } from "../config";
-import { ApiError } from "../errors";
+import { requireVerifiedSession } from "../auth/middleware";
 import { getAuthenticatedSession } from "../auth/session";
 import { validateRequest } from "../validation";
 
@@ -76,22 +76,22 @@ export function createAuthRouter(dbPool: Pool): Router {
     }
   });
 
-  router.get("/session/required", async (req, res, next) => {
-    try {
-      const session = await getAuthenticatedSession(req, dbPool);
+  router.get("/session/required", ...requireVerifiedSession(dbPool), (_req, res) => {
+    res.json({ ok: true });
+  });
 
-      if (!session) {
-        throw new ApiError(401, "unauthenticated", "Sign in is required.");
-      }
+  router.post("/auth/logout", (_req, res) => {
+    res.clearCookie("mctai_session", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: config.nodeEnv === "production",
+      path: "/",
+    });
 
-      if (!session.user.emailVerified) {
-        throw new ApiError(403, "email_unverified", "Email verification is required.");
-      }
-
-      res.json({ ok: true });
-    } catch (error) {
-      next(error);
-    }
+    res.json({
+      authenticated: false,
+      loginUrl: buildLoginUrl("/login"),
+    });
   });
 
   return router;

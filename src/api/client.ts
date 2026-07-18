@@ -134,6 +134,17 @@ export const apiClient = {
     return response.json() as Promise<SessionData>;
   },
 
+  async signOut(): Promise<{ authenticated: false; loginUrl: string }> {
+    if (import.meta.env.DEV) {
+      return {
+        authenticated: false,
+        loginUrl: this.getAuthRedirectUrl("login", "/"),
+      };
+    }
+
+    return request<{ authenticated: false; loginUrl: string }>("/auth/logout", { method: "POST" });
+  },
+
   async getAppShell(): Promise<AppShellData> {
     if (import.meta.env.DEV) {
       return shellPreviewData;

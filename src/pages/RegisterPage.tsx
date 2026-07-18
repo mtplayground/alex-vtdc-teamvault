@@ -1,9 +1,8 @@
 import { LogIn, MailCheck, ShieldCheck } from "lucide-react";
-import { apiClient } from "../api/client";
+import { useAuth } from "../state/AuthContext";
 
 export function RegisterPage() {
-  const registerUrl = apiClient.getAuthRedirectUrl("register", "/");
-  const loginUrl = apiClient.getAuthRedirectUrl("login", "/");
+  const { registerUrl, loginUrl } = useAuth();
 
   return (
     <main className="auth-page">
