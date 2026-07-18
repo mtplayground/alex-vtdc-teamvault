@@ -2,10 +2,17 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import multer from "multer";
 import type { Pool } from "pg";
 import { z } from "zod";
-import type { DocumentListResponse, UploadDocumentResponse } from "../../types/domain";
+import type {
+  DocumentAccessResponse,
+  DocumentListResponse,
+  DocumentResponse,
+  UploadDocumentResponse,
+} from "../../types/domain";
 import { requireWorkspacePermission } from "../auth/middleware";
 import { ApiError } from "../errors";
 import {
+  createWorkspaceProjectDocumentAccess,
+  getWorkspaceProjectDocument,
   listWorkspaceProjectDocuments,
   MAX_DOCUMENT_BYTES,
   uploadWorkspaceProjectDocument,
@@ -15,6 +22,10 @@ import { validateRequest } from "../validation";
 const paramsSchema = z.object({
   workspaceId: z.string().uuid(),
   projectId: z.string().uuid(),
+});
+
+const documentParamsSchema = paramsSchema.extend({
+  documentId: z.string().uuid(),
 });
 
 const upload = multer({
@@ -81,6 +92,69 @@ export function createDocumentsRouter(dbPool: Pool): Router {
         });
         const response: UploadDocumentResponse = { document };
         res.status(201).json(response);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/workspaces/:workspaceId/projects/:projectId/documents/:documentId",
+    validateRequest("params", documentParamsSchema),
+    ...requireWorkspacePermission(dbPool, "documents.view", (req) => String(req.params.workspaceId)),
+    async (req: Request, res: Response, next) => {
+      try {
+        const { projectId, documentId } = req.params as z.infer<typeof documentParamsSchema>;
+        const document = await getWorkspaceProjectDocument(
+          dbPool,
+          req.workspaceMembership!,
+          projectId,
+          documentId,
+        );
+        const response: DocumentResponse = { document };
+        res.json(response);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/workspaces/:workspaceId/projects/:projectId/documents/:documentId/preview-url",
+    validateRequest("params", documentParamsSchema),
+    ...requireWorkspacePermission(dbPool, "documents.view", (req) => String(req.params.workspaceId)),
+    async (req: Request, res: Response, next) => {
+      try {
+        const { projectId, documentId } = req.params as z.infer<typeof documentParamsSchema>;
+        const response: DocumentAccessResponse = await createWorkspaceProjectDocumentAccess(dbPool, {
+          membership: req.workspaceMembership!,
+          actorSub: req.auth!.user.sub,
+          projectId,
+          documentId,
+          disposition: "inline",
+        });
+        res.json(response);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/workspaces/:workspaceId/projects/:projectId/documents/:documentId/download-url",
+    validateRequest("params", documentParamsSchema),
+    ...requireWorkspacePermission(dbPool, "documents.download", (req) => String(req.params.workspaceId)),
+    async (req: Request, res: Response, next) => {
+      try {
+        const { projectId, documentId } = req.params as z.infer<typeof documentParamsSchema>;
+        const response: DocumentAccessResponse = await createWorkspaceProjectDocumentAccess(dbPool, {
+          membership: req.workspaceMembership!,
+          actorSub: req.auth!.user.sub,
+          projectId,
+          documentId,
+          disposition: "attachment",
+        });
+        res.json(response);
       } catch (error) {
         next(error);
       }

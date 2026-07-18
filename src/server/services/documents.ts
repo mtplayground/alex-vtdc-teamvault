@@ -1,17 +1,19 @@
 import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
-import type { DocumentSummary } from "../../types/domain";
+import type { DocumentAccessResponse, DocumentSummary } from "../../types/domain";
 import {
   createDocument,
+  getDocumentForProject,
   getProjectForWorkspace,
   listDocumentsForProject,
   recordActivity,
 } from "../db/repositories";
 import type { DocumentKind, WorkspaceMembershipRecord } from "../db/types";
 import { ApiError } from "../errors";
-import { deleteObject, putObject } from "../storage/client";
+import { deleteObject, getReadUrl, putObject } from "../storage/client";
 
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const DOCUMENT_ACCESS_SECONDS = 300;
 
 const allowedContentTypes: Record<string, DocumentKind> = {
   "application/pdf": "pdf",
@@ -40,6 +42,11 @@ function toDocumentSummary(
 function safeFilename(filename: string): string {
   const clean = filename.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
   return clean.slice(0, 120) || "document";
+}
+
+function contentDisposition(disposition: "inline" | "attachment", filename: string): string {
+  const safe = safeFilename(filename).replace(/"/g, "");
+  return `${disposition}; filename="${safe}"`;
 }
 
 function validateUpload(file: Express.Multer.File): DocumentKind {
@@ -82,6 +89,95 @@ export async function listWorkspaceProjectDocuments(
   });
 
   return documents.map(toDocumentSummary);
+}
+
+export async function getWorkspaceProjectDocument(
+  dbPool: Pool,
+  membership: WorkspaceMembershipRecord,
+  projectId: string,
+  documentId: string,
+): Promise<DocumentSummary> {
+  const project = await getProjectForWorkspace(dbPool, {
+    workspaceId: membership.workspaceId,
+    projectId,
+    userSub: membership.userSub,
+    role: membership.role,
+  });
+
+  if (!project) {
+    throw new ApiError(404, "project_not_found", "Project was not found.");
+  }
+
+  const document = await getDocumentForProject(dbPool, {
+    workspaceId: membership.workspaceId,
+    projectId,
+    documentId,
+  });
+
+  if (!document) {
+    throw new ApiError(404, "document_not_found", "Document was not found.");
+  }
+
+  return toDocumentSummary(document);
+}
+
+export async function createWorkspaceProjectDocumentAccess(
+  dbPool: Pool,
+  input: {
+    membership: WorkspaceMembershipRecord;
+    actorSub: string;
+    projectId: string;
+    documentId: string;
+    disposition: "inline" | "attachment";
+  },
+): Promise<DocumentAccessResponse> {
+  const project = await getProjectForWorkspace(dbPool, {
+    workspaceId: input.membership.workspaceId,
+    projectId: input.projectId,
+    userSub: input.membership.userSub,
+    role: input.membership.role,
+  });
+
+  if (!project) {
+    throw new ApiError(404, "project_not_found", "Project was not found.");
+  }
+
+  const document = await getDocumentForProject(dbPool, {
+    workspaceId: input.membership.workspaceId,
+    projectId: input.projectId,
+    documentId: input.documentId,
+  });
+
+  if (!document) {
+    throw new ApiError(404, "document_not_found", "Document was not found.");
+  }
+
+  const url = await getReadUrl(document.storageKey, {
+    expiresInSeconds: DOCUMENT_ACCESS_SECONDS,
+    contentDisposition: contentDisposition(input.disposition, document.originalFilename),
+    contentType: document.contentType,
+  });
+
+  if (input.disposition === "attachment") {
+    await recordActivity(dbPool, {
+      workspaceId: input.membership.workspaceId,
+      actorSub: input.actorSub,
+      action: "document_downloaded",
+      targetType: "document",
+      targetId: document.id,
+      metadata: {
+        documentName: document.originalFilename,
+        projectId: input.projectId,
+        projectName: project.name,
+      },
+    });
+  }
+
+  return {
+    url,
+    expiresAt: new Date(Date.now() + DOCUMENT_ACCESS_SECONDS * 1000).toISOString(),
+    disposition: input.disposition,
+  };
 }
 
 export async function uploadWorkspaceProjectDocument(

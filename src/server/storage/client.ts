@@ -33,8 +33,24 @@ export async function deleteObject(key: string): Promise<void> {
   await storageClient.send(new DeleteObjectCommand({ Bucket: storageBucket, Key: key }));
 }
 
-export async function getReadUrl(key: string, expiresInSeconds = 300): Promise<string> {
-  return getSignedUrl(storageClient, new GetObjectCommand({ Bucket: storageBucket, Key: key }), {
-    expiresIn: expiresInSeconds,
-  });
+export async function getReadUrl(
+  key: string,
+  options: {
+    expiresInSeconds?: number;
+    contentDisposition?: string;
+    contentType?: string;
+  } = {},
+): Promise<string> {
+  return getSignedUrl(
+    storageClient,
+    new GetObjectCommand({
+      Bucket: storageBucket,
+      Key: key,
+      ResponseContentDisposition: options.contentDisposition,
+      ResponseContentType: options.contentType,
+    }),
+    {
+      expiresIn: options.expiresInSeconds ?? 300,
+    },
+  );
 }

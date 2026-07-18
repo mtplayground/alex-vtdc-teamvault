@@ -551,6 +551,37 @@ export async function listDocumentsForProject(
   }));
 }
 
+export async function getDocumentForProject(
+  db: Queryable,
+  input: { workspaceId: string; projectId: string; documentId: string },
+) {
+  const result = await db.query(
+    `
+      SELECT
+        d.*,
+        u.name AS uploader_name,
+        u.email AS uploader_email
+      FROM documents d
+      LEFT JOIN users u ON u.sub = d.uploader_sub
+      WHERE d.workspace_id = $1
+        AND d.project_id = $2
+        AND d.id = $3
+        AND d.deleted_at IS NULL
+    `,
+    [input.workspaceId, input.projectId, input.documentId],
+  );
+
+  const row = result.rows[0];
+
+  return row
+    ? {
+        ...mapDocument(row),
+        uploaderName: row.uploader_name as string | null,
+        uploaderEmail: row.uploader_email as string | null,
+      }
+    : null;
+}
+
 export async function createInvitation(
   db: Queryable,
   input: {

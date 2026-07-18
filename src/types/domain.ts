@@ -50,6 +50,16 @@ export interface UploadDocumentResponse {
   document: DocumentSummary;
 }
 
+export interface DocumentResponse {
+  document: DocumentSummary;
+}
+
+export interface DocumentAccessResponse {
+  url: string;
+  expiresAt: string;
+  disposition: "inline" | "attachment";
+}
+
 export interface ActivityItem {
   id: string;
   actor: string;

@@ -219,7 +219,7 @@ export function ProjectDetailPage() {
         ) : documents.data?.documents.length ? (
           documents.data.documents.map((document) => (
             <article className="list-row" key={document.id}>
-              <div className="document-link">
+              <Link className="document-link" to={`/projects/${projectId}/documents/${document.id}`}>
                 <DocumentIcon document={document} />
                 <div>
                   <h3>{document.originalFilename}</h3>
@@ -227,7 +227,7 @@ export function ProjectDetailPage() {
                     {formatBytes(document.sizeBytes)} · Uploaded {formatDate(document.uploadedAt)}
                   </p>
                 </div>
-              </div>
+              </Link>
               <span className="permission-note">
                 {document.uploaderName ?? document.uploaderEmail ?? "Unknown uploader"}
               </span>
