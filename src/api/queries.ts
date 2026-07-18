@@ -171,3 +171,36 @@ export function useUploadDocumentMutation(workspaceId?: string, projectId?: stri
     },
   });
 }
+
+export function useDocumentQuery(workspaceId?: string, projectId?: string, documentId?: string) {
+  return useQuery({
+    queryKey: ["document", workspaceId, projectId, documentId],
+    queryFn: () =>
+      apiClient.getDocument({
+        workspaceId: workspaceId!,
+        projectId: projectId!,
+        documentId: documentId!,
+      }),
+    enabled: Boolean(workspaceId && projectId && documentId),
+  });
+}
+
+export function useDocumentPreviewUrlQuery(workspaceId?: string, projectId?: string, documentId?: string) {
+  return useQuery({
+    queryKey: ["document-preview-url", workspaceId, projectId, documentId],
+    queryFn: () =>
+      apiClient.getDocumentPreviewUrl({
+        workspaceId: workspaceId!,
+        projectId: projectId!,
+        documentId: documentId!,
+      }),
+    enabled: Boolean(workspaceId && projectId && documentId),
+    staleTime: 4 * 60 * 1000,
+  });
+}
+
+export function useDocumentDownloadMutation() {
+  return useMutation({
+    mutationFn: apiClient.createDocumentDownloadUrl,
+  });
+}

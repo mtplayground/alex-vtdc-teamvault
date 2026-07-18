@@ -3,7 +3,9 @@ import type {
   AppShellData,
   CreateInvitationResponse,
   CreateWorkspaceResponse,
+  DocumentAccessResponse,
   DocumentListResponse,
+  DocumentResponse,
   ProjectListResponse,
   ProjectResponse,
   RosterMember,
@@ -498,5 +500,58 @@ export const apiClient = {
     }
 
     return response.json() as Promise<UploadDocumentResponse>;
+  },
+
+  async getDocument(input: {
+    workspaceId: string;
+    projectId: string;
+    documentId: string;
+  }): Promise<DocumentResponse> {
+    if (import.meta.env.DEV) {
+      const document =
+        documentPreviewData.documents.find((item) => item.id === input.documentId) ?? documentPreviewData.documents[0];
+      return { document };
+    }
+
+    return request<DocumentResponse>(
+      `/workspaces/${input.workspaceId}/projects/${input.projectId}/documents/${input.documentId}`,
+    );
+  },
+
+  async getDocumentPreviewUrl(input: {
+    workspaceId: string;
+    projectId: string;
+    documentId: string;
+  }): Promise<DocumentAccessResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        url: "about:blank",
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        disposition: "inline",
+      };
+    }
+
+    return request<DocumentAccessResponse>(
+      `/workspaces/${input.workspaceId}/projects/${input.projectId}/documents/${input.documentId}/preview-url`,
+    );
+  },
+
+  async createDocumentDownloadUrl(input: {
+    workspaceId: string;
+    projectId: string;
+    documentId: string;
+  }): Promise<DocumentAccessResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        url: "about:blank",
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        disposition: "attachment",
+      };
+    }
+
+    return request<DocumentAccessResponse>(
+      `/workspaces/${input.workspaceId}/projects/${input.projectId}/documents/${input.documentId}/download-url`,
+      { method: "POST" },
+    );
   },
 };

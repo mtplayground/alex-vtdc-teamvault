@@ -5,6 +5,7 @@ import { ActivityPage } from "../pages/ActivityPage";
 import { CheckEmailPage } from "../pages/CheckEmailPage";
 import { AcceptInvitationPage } from "../pages/AcceptInvitationPage";
 import { DashboardPage } from "../pages/DashboardPage";
+import { DocumentViewerPage } from "../pages/DocumentViewerPage";
 import { DocumentsPage } from "../pages/DocumentsPage";
 import { LoginPage } from "../pages/LoginPage";
 import { MembersPage } from "../pages/MembersPage";
@@ -68,6 +69,7 @@ export function App() {
         <Route path="/invite/accept" element={<AcceptInvitationPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+        <Route path="/projects/:projectId/documents/:documentId" element={<DocumentViewerPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/activity" element={<ActivityPage />} />
