@@ -52,6 +52,17 @@ export interface CreateWorkspaceResponse {
   workspaces: WorkspaceSummary[];
 }
 
+export interface CreateInvitationResponse {
+  invitationId: string;
+  expiresAt: string;
+  emailStatus: "sent" | "skipped" | "rate_limited" | "failed";
+}
+
+export interface AcceptInvitationResponse {
+  workspaceId: string;
+  role: Role;
+}
+
 export type SessionData =
   | {
       authenticated: false;

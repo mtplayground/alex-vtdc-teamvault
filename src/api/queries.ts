@@ -38,3 +38,23 @@ export function useCreateWorkspaceMutation() {
     },
   });
 }
+
+export function useCreateInvitationMutation() {
+  return useMutation({
+    mutationFn: apiClient.createInvitation,
+  });
+}
+
+export function useAcceptInvitationMutation() {
+  const queryClient = useQueryClient();
+  const { setSelectedWorkspaceId } = useAppState();
+
+  return useMutation({
+    mutationFn: apiClient.acceptInvitation,
+    onSuccess: (data) => {
+      setSelectedWorkspaceId(data.workspaceId);
+      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+    },
+  });
+}

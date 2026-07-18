@@ -1,4 +1,12 @@
-import type { AppShellData, CreateWorkspaceResponse, SessionData, WorkspaceListResponse } from "../types/domain";
+import type {
+  AcceptInvitationResponse,
+  AppShellData,
+  CreateInvitationResponse,
+  CreateWorkspaceResponse,
+  Role,
+  SessionData,
+  WorkspaceListResponse,
+} from "../types/domain";
 import { getPermissionsForRole } from "../authorization/permissions";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
@@ -212,6 +220,39 @@ export const apiClient = {
     return request<CreateWorkspaceResponse>("/workspaces", {
       method: "POST",
       body: JSON.stringify({ name }),
+    });
+  },
+
+  async createInvitation(input: {
+    workspaceId: string;
+    email: string;
+    role: Extract<Role, "member" | "guest">;
+  }): Promise<CreateInvitationResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        invitationId: crypto.randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        emailStatus: "skipped",
+      };
+    }
+
+    return request<CreateInvitationResponse>(`/workspaces/${input.workspaceId}/invitations`, {
+      method: "POST",
+      body: JSON.stringify({ email: input.email, role: input.role }),
+    });
+  },
+
+  async acceptInvitation(token: string): Promise<AcceptInvitationResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        workspaceId: shellPreviewData.workspace?.id ?? "preview-workspace",
+        role: "member",
+      };
+    }
+
+    return request<AcceptInvitationResponse>("/invitations/accept", {
+      method: "POST",
+      body: JSON.stringify({ token }),
     });
   },
 };
