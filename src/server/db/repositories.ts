@@ -745,7 +745,7 @@ export async function recordActivity(
 
 export async function listWorkspaceActivityEntries(
   db: Queryable,
-  input: { workspaceId: string; limit?: number },
+  input: { workspaceId: string; userSub: string; role: WorkspaceRole; limit: number; offset: number },
 ) {
   const result = await db.query(
     `
@@ -760,10 +760,22 @@ export async function listWorkspaceActivityEntries(
         ON wm.workspace_id = ae.workspace_id
         AND wm.user_sub = ae.actor_sub
       WHERE ae.workspace_id = $1
+        AND (
+          $5::TEXT <> 'guest'
+          OR ae.actor_sub = $4
+          OR EXISTS (
+            SELECT 1
+            FROM project_guest_access pga
+            WHERE pga.workspace_id = ae.workspace_id
+              AND pga.user_sub = $4
+              AND pga.project_id = NULLIF(ae.metadata->>'projectId', '')::UUID
+          )
+        )
       ORDER BY ae.created_at DESC
       LIMIT $2
+      OFFSET $3
     `,
-    [input.workspaceId, input.limit ?? 50],
+    [input.workspaceId, input.limit, input.offset, input.userSub, input.role],
   );
 
   return result.rows.map((row) => ({

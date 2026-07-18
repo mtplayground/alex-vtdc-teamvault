@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from "pg";
-import type { ActivityItem } from "../../types/domain";
+import type { ActivityItem, ActivityListResponse } from "../../types/domain";
 import { listWorkspaceActivityEntries, recordActivity } from "../db/repositories";
-import type { ActivityAction, WorkspaceRole } from "../db/types";
+import type { ActivityAction, WorkspaceMembershipRecord, WorkspaceRole } from "../db/types";
 
 type ActivityDb = Pool | PoolClient;
 
@@ -55,17 +55,29 @@ export async function logActivity(db: ActivityDb, input: LogActivityInput) {
 
 export async function listWorkspaceActivity(
   dbPool: Pool,
-  workspaceId: string,
-  limit = 50,
-): Promise<ActivityItem[]> {
-  const entries = await listWorkspaceActivityEntries(dbPool, { workspaceId, limit });
+  membership: WorkspaceMembershipRecord,
+  input: { limit?: number; offset?: number } = {},
+): Promise<ActivityListResponse> {
+  const limit = input.limit ?? 25;
+  const offset = input.offset ?? 0;
+  const entries = await listWorkspaceActivityEntries(dbPool, {
+    workspaceId: membership.workspaceId,
+    userSub: membership.userSub,
+    role: membership.role,
+    limit: limit + 1,
+    offset,
+  });
+  const page = entries.slice(0, limit);
 
-  return entries.map((entry) => ({
-    id: entry.id,
-    actor: entry.actorName ?? entry.actorEmail ?? "System",
-    action: actionLabel(entry.action),
-    target: targetLabel(entry),
-    role: entry.actorRole ?? ("member" as WorkspaceRole),
-    occurredAt: entry.createdAt.toISOString(),
-  }));
+  return {
+    activity: page.map((entry): ActivityItem => ({
+      id: entry.id,
+      actor: entry.actorName ?? entry.actorEmail ?? "System",
+      action: actionLabel(entry.action),
+      target: targetLabel(entry),
+      role: entry.actorRole ?? ("member" as WorkspaceRole),
+      occurredAt: entry.createdAt.toISOString(),
+    })),
+    nextOffset: entries.length > limit ? offset + limit : null,
+  };
 }

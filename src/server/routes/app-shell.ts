@@ -108,7 +108,10 @@ export function createAppShellRouter(dbPool: Pool): Router {
           ? await getWorkspaceMembership(dbPool, { workspaceId: workspace.id, userSub: session.user.sub })
           : null;
         const projects = membership ? await listWorkspaceProjects(dbPool, membership) : [];
-        const activity = workspace ? await listWorkspaceActivity(dbPool, workspace.id, 10) : [];
+        const activity = membership ? await listWorkspaceActivity(dbPool, membership, { limit: 10 }) : {
+          activity: [],
+          nextOffset: null,
+        };
 
         res.json({
           ...shellData,
@@ -120,7 +123,7 @@ export function createAppShellRouter(dbPool: Pool): Router {
           workspace,
           workspaces,
           projects,
-          activity,
+          activity: activity.activity,
         });
       } catch (error) {
         next(error);

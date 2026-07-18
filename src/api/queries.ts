@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 import { useAppState } from "../state/AppState";
 
@@ -26,9 +26,16 @@ export function useWorkspacesQuery() {
 }
 
 export function useActivityQuery(workspaceId?: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["activity", workspaceId],
-    queryFn: () => apiClient.listActivity(workspaceId!),
+    queryFn: ({ pageParam }) =>
+      apiClient.listActivity({
+        workspaceId: workspaceId!,
+        offset: pageParam,
+        limit: 25,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
     enabled: Boolean(workspaceId),
   });
 }

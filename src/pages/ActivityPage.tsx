@@ -1,4 +1,5 @@
 import { useActivityQuery, useAppShellQuery } from "../api/queries";
+import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingState } from "../components/ui/LoadingState";
 import { RoleBadge } from "../components/ui/RoleBadge";
@@ -16,6 +17,7 @@ export function ActivityPage() {
   if (!data?.workspace || activity.isLoading || !activity.data) {
     return <LoadingState title="Loading activity" detail="Preparing workspace history." />;
   }
+  const activityItems = activity.data.pages.flatMap((page) => page.activity);
 
   return (
     <div className="page-stack">
@@ -27,21 +29,34 @@ export function ActivityPage() {
         </div>
       </section>
 
-      {activity.data.activity.length ? (
-        <section className="timeline">
-          {activity.data.activity.map((item) => (
-            <article className="timeline-row" key={item.id}>
-              <div className="timeline-marker" />
-              <div>
-                <h3>
-                  {item.actor} {item.action} {item.target}
-                </h3>
-                <p>{formatDate(item.occurredAt)}</p>
-              </div>
-              <RoleBadge role={item.role} />
-            </article>
-          ))}
-        </section>
+      {activityItems.length ? (
+        <>
+          <section className="timeline">
+            {activityItems.map((item) => (
+              <article className="timeline-row" key={item.id}>
+                <div className="timeline-marker" />
+                <div>
+                  <h3>
+                    {item.actor} {item.action} {item.target}
+                  </h3>
+                  <p>{formatDate(item.occurredAt)}</p>
+                </div>
+                <RoleBadge role={item.role} />
+              </article>
+            ))}
+          </section>
+          {activity.hasNextPage ? (
+            <div className="row-actions">
+              <Button
+                variant="secondary"
+                onClick={() => void activity.fetchNextPage()}
+                disabled={activity.isFetchingNextPage}
+              >
+                {activity.isFetchingNextPage ? "Loading" : "Load more"}
+              </Button>
+            </div>
+          ) : null}
+        </>
       ) : (
         <EmptyState title="No activity yet" detail="Workspace events will appear here as people collaborate." />
       )}

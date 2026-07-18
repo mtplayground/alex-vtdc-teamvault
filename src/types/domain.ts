@@ -77,6 +77,7 @@ export interface ActivityItem {
 
 export interface ActivityListResponse {
   activity: ActivityItem[];
+  nextOffset: number | null;
 }
 
 export interface AppShellData {
