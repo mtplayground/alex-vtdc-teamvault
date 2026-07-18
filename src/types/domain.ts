@@ -32,8 +32,35 @@ export interface AppShellData {
   currentUser: {
     name: string;
     email: string;
+    pictureUrl?: string | null;
   };
   workspace: WorkspaceSummary;
   projects: ProjectSummary[];
   activity: ActivityItem[];
 }
+
+export type SessionData =
+  | {
+      authenticated: false;
+      loginUrl: string;
+    }
+  | {
+      authenticated: true;
+      verified: false;
+      loginUrl: string;
+      user: {
+        name: string | null;
+        email: string;
+        pictureUrl: string | null;
+      };
+    }
+  | {
+      authenticated: true;
+      verified: true;
+      registrationStatus: "registered" | "returning";
+      user: {
+        name: string | null;
+        email: string;
+        pictureUrl: string | null;
+      };
+    };

@@ -1,4 +1,4 @@
-import type { AppShellData } from "../types/domain";
+import type { AppShellData, SessionData } from "../types/domain";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -34,6 +34,7 @@ const shellPreviewData: AppShellData = {
   currentUser: {
     name: "Workspace Owner",
     email: "owner@example.com",
+    pictureUrl: null,
   },
   workspace: {
     id: "preview-workspace",
@@ -94,16 +95,50 @@ const shellPreviewData: AppShellData = {
   ],
 };
 
+const previewSessionData: SessionData = {
+  authenticated: true,
+  verified: true,
+  registrationStatus: "returning",
+  user: {
+    name: "Workspace Owner",
+    email: "owner@example.com",
+    pictureUrl: null,
+  },
+};
+
 export const apiClient = {
+  getAuthRedirectUrl(mode: "login" | "register", returnTo = "/"): string {
+    return `${apiBaseUrl}/auth/${mode}?return_to=${encodeURIComponent(returnTo)}`;
+  },
+
+  async getSession(): Promise<SessionData> {
+    if (import.meta.env.DEV) {
+      return previewSessionData;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/session`, {
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      return response.json() as Promise<SessionData>;
+    }
+
+    if (!response.ok) {
+      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    }
+
+    return response.json() as Promise<SessionData>;
+  },
+
   async getAppShell(): Promise<AppShellData> {
     if (import.meta.env.DEV) {
       return shellPreviewData;
     }
 
-    try {
-      return await request<AppShellData>("/app-shell");
-    } catch {
-      return shellPreviewData;
-    }
+    return request<AppShellData>("/app-shell");
   },
 };
