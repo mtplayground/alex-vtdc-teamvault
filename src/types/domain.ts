@@ -22,6 +22,14 @@ export interface ProjectSummary {
   visibility: "workspace" | "guest-scoped";
 }
 
+export interface ProjectListResponse {
+  projects: ProjectSummary[];
+}
+
+export interface ProjectResponse {
+  project: ProjectSummary;
+}
+
 export interface ActivityItem {
   id: string;
   actor: string;
