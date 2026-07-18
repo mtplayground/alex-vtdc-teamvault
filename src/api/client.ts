@@ -3,6 +3,8 @@ import type {
   AppShellData,
   CreateInvitationResponse,
   CreateWorkspaceResponse,
+  ProjectListResponse,
+  ProjectResponse,
   RosterMember,
   RosterResponse,
   Role,
@@ -72,21 +74,21 @@ const shellPreviewData: AppShellData = {
       id: "project-1",
       name: "Board approvals",
       documentCount: 12,
-      updatedAt: "Today",
+      updatedAt: new Date().toISOString(),
       visibility: "workspace",
     },
     {
       id: "project-2",
       name: "Vendor diligence",
       documentCount: 9,
-      updatedAt: "Yesterday",
+      updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       visibility: "guest-scoped",
     },
     {
       id: "project-3",
       name: "Policy archive",
       documentCount: 11,
-      updatedAt: "Jul 15",
+      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       visibility: "workspace",
     },
   ],
@@ -328,6 +330,80 @@ export const apiClient = {
     }
 
     const response = await fetch(`${apiBaseUrl}/workspaces/${input.workspaceId}/members/${encodeURIComponent(input.userSub)}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    }
+  },
+
+  async listProjects(workspaceId: string): Promise<ProjectListResponse> {
+    if (import.meta.env.DEV) {
+      return { projects: shellPreviewData.projects };
+    }
+
+    return request<ProjectListResponse>(`/workspaces/${workspaceId}/projects`);
+  },
+
+  async getProject(input: { workspaceId: string; projectId: string }): Promise<ProjectResponse> {
+    if (import.meta.env.DEV) {
+      const project =
+        shellPreviewData.projects.find((item) => item.id === input.projectId) ?? shellPreviewData.projects[0];
+      return { project };
+    }
+
+    return request<ProjectResponse>(`/workspaces/${input.workspaceId}/projects/${input.projectId}`);
+  },
+
+  async createProject(input: { workspaceId: string; name: string }): Promise<ProjectResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        project: {
+          id: crypto.randomUUID(),
+          name: input.name,
+          documentCount: 0,
+          updatedAt: new Date().toISOString(),
+          visibility: "workspace",
+        },
+      };
+    }
+
+    return request<ProjectResponse>(`/workspaces/${input.workspaceId}/projects`, {
+      method: "POST",
+      body: JSON.stringify({ name: input.name }),
+    });
+  },
+
+  async renameProject(input: { workspaceId: string; projectId: string; name: string }): Promise<ProjectResponse> {
+    if (import.meta.env.DEV) {
+      const project =
+        shellPreviewData.projects.find((item) => item.id === input.projectId) ?? shellPreviewData.projects[0];
+      return {
+        project: {
+          ...project,
+          name: input.name,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    return request<ProjectResponse>(`/workspaces/${input.workspaceId}/projects/${input.projectId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: input.name }),
+    });
+  },
+
+  async archiveProject(input: { workspaceId: string; projectId: string }): Promise<void> {
+    if (import.meta.env.DEV) {
+      return;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/workspaces/${input.workspaceId}/projects/${input.projectId}`, {
       method: "DELETE",
       credentials: "include",
       headers: {

@@ -435,6 +435,18 @@ input:focus-visible,
   margin: 4px 0 0;
 }
 
+.project-link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.project-link svg {
+  color: var(--accent);
+}
+
 .timeline-row {
   justify-content: flex-start;
 }

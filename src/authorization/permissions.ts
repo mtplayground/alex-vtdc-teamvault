@@ -5,6 +5,7 @@ export type Permission =
   | "members.manage"
   | "roles.manage"
   | "projects.create"
+  | "projects.manage"
   | "documents.upload"
   | "documents.organize"
   | "documents.view"
@@ -16,12 +17,20 @@ const permissionsByRole: Record<WorkspaceRole, Permission[]> = {
     "members.manage",
     "roles.manage",
     "projects.create",
+    "projects.manage",
     "documents.upload",
     "documents.organize",
     "documents.view",
     "documents.download",
   ],
-  member: ["projects.create", "documents.upload", "documents.organize", "documents.view", "documents.download"],
+  member: [
+    "projects.create",
+    "projects.manage",
+    "documents.upload",
+    "documents.organize",
+    "documents.view",
+    "documents.download",
+  ],
   guest: ["documents.view", "documents.download"],
 };
 

@@ -377,6 +377,110 @@ export async function createProject(
   return mapProject(requireOne(result.rows, "Project"));
 }
 
+export async function listProjectsForWorkspace(
+  db: Queryable,
+  input: { workspaceId: string; userSub: string; role: WorkspaceRole },
+) {
+  const guestFilter =
+    input.role === "guest"
+      ? `
+        AND EXISTS (
+          SELECT 1
+          FROM project_guest_access pga
+          WHERE pga.project_id = p.id
+            AND pga.user_sub = $2
+        )
+      `
+      : "";
+  const params = input.role === "guest" ? [input.workspaceId, input.userSub] : [input.workspaceId];
+
+  const result = await db.query(
+    `
+      SELECT
+        p.id,
+        p.workspace_id,
+        p.name,
+        p.created_by_sub,
+        p.archived_at,
+        p.created_at,
+        p.updated_at,
+        COUNT(d.id)::INT AS document_count,
+        EXISTS (
+          SELECT 1 FROM project_guest_access pga WHERE pga.project_id = p.id
+        ) AS guest_scoped
+      FROM projects p
+      LEFT JOIN documents d ON d.project_id = p.id AND d.deleted_at IS NULL
+      WHERE p.workspace_id = $1
+        AND p.archived_at IS NULL
+        ${guestFilter}
+      GROUP BY p.id
+      ORDER BY p.updated_at DESC, p.created_at DESC
+    `,
+    params,
+  );
+
+  return result.rows.map((row) => ({
+    ...mapProject(row),
+    documentCount: row.document_count,
+    visibility: row.guest_scoped ? ("guest-scoped" as const) : ("workspace" as const),
+  }));
+}
+
+export async function getProjectForWorkspace(
+  db: Queryable,
+  input: { workspaceId: string; projectId: string; userSub: string; role: WorkspaceRole },
+) {
+  const projects = await listProjectsForWorkspace(db, {
+    workspaceId: input.workspaceId,
+    userSub: input.userSub,
+    role: input.role,
+  });
+
+  return projects.find((project) => project.id === input.projectId) ?? null;
+}
+
+export async function renameProject(
+  db: Queryable,
+  input: { workspaceId: string; projectId: string; name: string },
+): Promise<ProjectRecord | null> {
+  const result = await db.query(
+    `
+      UPDATE projects
+      SET name = $3,
+          updated_at = NOW()
+      WHERE workspace_id = $1
+        AND id = $2
+        AND archived_at IS NULL
+      RETURNING *
+    `,
+    [input.workspaceId, input.projectId, input.name],
+  );
+
+  const row = result.rows[0];
+  return row ? mapProject(row) : null;
+}
+
+export async function archiveProject(
+  db: Queryable,
+  input: { workspaceId: string; projectId: string },
+): Promise<ProjectRecord | null> {
+  const result = await db.query(
+    `
+      UPDATE projects
+      SET archived_at = NOW(),
+          updated_at = NOW()
+      WHERE workspace_id = $1
+        AND id = $2
+        AND archived_at IS NULL
+      RETURNING *
+    `,
+    [input.workspaceId, input.projectId],
+  );
+
+  const row = result.rows[0];
+  return row ? mapProject(row) : null;
+}
+
 export async function createDocument(
   db: Queryable,
   input: {

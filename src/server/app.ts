@@ -7,6 +7,7 @@ import { createAppShellRouter } from "./routes/app-shell";
 import { createAuthRouter } from "./routes/auth";
 import { createHealthRouter } from "./routes/health";
 import { createInvitationsRouter } from "./routes/invitations";
+import { createProjectsRouter } from "./routes/projects";
 import { createRosterRouter } from "./routes/roster";
 import { createWorkspacesRouter } from "./routes/workspaces";
 
@@ -43,6 +44,7 @@ export function createApp() {
   apiRouter.use(createWorkspacesRouter(dbPool));
   apiRouter.use(createInvitationsRouter(dbPool));
   apiRouter.use(createRosterRouter(dbPool));
+  apiRouter.use(createProjectsRouter(dbPool));
   apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);

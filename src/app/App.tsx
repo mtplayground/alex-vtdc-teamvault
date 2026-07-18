@@ -8,6 +8,7 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { DocumentsPage } from "../pages/DocumentsPage";
 import { LoginPage } from "../pages/LoginPage";
 import { MembersPage } from "../pages/MembersPage";
+import { ProjectDetailPage } from "../pages/ProjectDetailPage";
 import { ProjectsPage } from "../pages/ProjectsPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { RequestPasswordResetPage } from "../pages/RequestPasswordResetPage";
@@ -66,6 +67,7 @@ export function App() {
         <Route path="/verified" element={<VerifiedPage />} />
         <Route path="/invite/accept" element={<AcceptInvitationPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/activity" element={<ActivityPage />} />

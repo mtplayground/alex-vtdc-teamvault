@@ -4,7 +4,9 @@ import { z } from "zod";
 import { getPermissionsForRole } from "../../authorization/permissions";
 import type { AppShellData } from "../../types/domain";
 import { requireVerifiedSession } from "../auth/middleware";
+import { getWorkspaceMembership } from "../db/repositories";
 import { ApiError } from "../errors";
+import { listWorkspaceProjects } from "../services/projects";
 import { listUserWorkspaces } from "../services/workspaces";
 import { validateRequest } from "../validation";
 
@@ -101,6 +103,10 @@ export function createAppShellRouter(dbPool: Pool): Router {
         }
 
         const workspace = requestedWorkspace ?? workspaces[0] ?? null;
+        const membership = workspace
+          ? await getWorkspaceMembership(dbPool, { workspaceId: workspace.id, userSub: session.user.sub })
+          : null;
+        const projects = membership ? await listWorkspaceProjects(dbPool, membership) : [];
 
         res.json({
           ...shellData,
@@ -111,7 +117,7 @@ export function createAppShellRouter(dbPool: Pool): Router {
           },
           workspace,
           workspaces,
-          projects: workspace ? shellData.projects : [],
+          projects,
           activity: workspace ? shellData.activity : [],
         });
       } catch (error) {
