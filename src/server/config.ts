@@ -21,6 +21,7 @@ const envSchema = z.object({
   MCTAI_AUTH_JWKS_URL: z.string().url(),
   MCTAI_EMAIL_URL: optionalUrl,
   MCTAI_EMAIL_APP_TOKEN: z.string().optional(),
+  EMAIL_FROM_ADDRESS: z.string().email().optional(),
   S3_ENDPOINT: z.string().url(),
   S3_REGION: z.string().min(1),
   S3_BUCKET: z.string().min(1),
@@ -54,6 +55,7 @@ export const config = {
   email: {
     url: parsedEnv.data.MCTAI_EMAIL_URL,
     appToken: parsedEnv.data.MCTAI_EMAIL_APP_TOKEN,
+    fromAddress: parsedEnv.data.EMAIL_FROM_ADDRESS,
     enabled: Boolean(parsedEnv.data.MCTAI_EMAIL_URL && parsedEnv.data.MCTAI_EMAIL_APP_TOKEN),
   },
   storage: {

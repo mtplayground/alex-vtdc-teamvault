@@ -18,6 +18,9 @@ export function createHealthRouter(dbPool: Pool): Router {
           bucket: config.storage.bucket,
           configured: true,
         },
+        email: {
+          configured: config.email.enabled,
+        },
       });
     } catch (error) {
       next(error);
