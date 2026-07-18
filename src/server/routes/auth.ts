@@ -4,6 +4,7 @@ import { z } from "zod";
 import { config } from "../config";
 import { requireVerifiedSession } from "../auth/middleware";
 import { getAuthenticatedSession } from "../auth/session";
+import { ApiError } from "../errors";
 import { validateRequest } from "../validation";
 
 const redirectQuerySchema = z.object({
@@ -16,12 +17,37 @@ const redirectQuerySchema = z.object({
     }),
 });
 
+const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+const resetRequestWindowMs = 15 * 60 * 1000;
+const maxResetRequestsPerWindow = 5;
+const resetRequestAttempts = new Map<string, { count: number; resetAt: number }>();
+
 function buildLoginUrl(returnToPath: string): string {
   const returnTo = new URL(returnToPath, config.selfUrl);
   const loginUrl = new URL("/login", config.auth.url);
   loginUrl.searchParams.set("app_token", config.auth.appToken);
   loginUrl.searchParams.set("return_to", returnTo.toString());
   return loginUrl.toString();
+}
+
+function rateLimitResetRequest(ip: string | undefined, email: string) {
+  const key = `${ip ?? "unknown"}:${email.toLowerCase()}`;
+  const now = Date.now();
+  const current = resetRequestAttempts.get(key);
+
+  if (!current || current.resetAt <= now) {
+    resetRequestAttempts.set(key, { count: 1, resetAt: now + resetRequestWindowMs });
+    return;
+  }
+
+  if (current.count >= maxResetRequestsPerWindow) {
+    throw new ApiError(429, "password_reset_rate_limited", "Too many reset requests. Try again shortly.");
+  }
+
+  current.count += 1;
 }
 
 export function createAuthRouter(dbPool: Pool): Router {
@@ -33,6 +59,24 @@ export function createAuthRouter(dbPool: Pool): Router {
 
   router.get("/auth/register", validateRequest("query", redirectQuerySchema), (req, res) => {
     res.redirect(buildLoginUrl(req.query.return_to as string));
+  });
+
+  router.get("/auth/password-reset", validateRequest("query", redirectQuerySchema), (req, res) => {
+    res.redirect(buildLoginUrl(req.query.return_to as string));
+  });
+
+  router.post("/auth/password-reset/request", validateRequest("body", passwordResetRequestSchema), (req, res, next) => {
+    try {
+      const { email } = req.body as z.infer<typeof passwordResetRequestSchema>;
+      rateLimitResetRequest(req.ip, email);
+
+      res.json({
+        status: "delegated",
+        loginUrl: buildLoginUrl("/reset-password/complete"),
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   router.get("/session", async (req, res, next) => {

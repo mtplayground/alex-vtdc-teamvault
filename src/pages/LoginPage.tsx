@@ -24,6 +24,9 @@ export function LoginPage() {
             Create account
           </Link>
         </div>
+        <Link className="auth-link" to="/reset-password">
+          Forgot password?
+        </Link>
       </section>
     </main>
   );

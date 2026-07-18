@@ -534,6 +534,26 @@ input:focus-visible,
   margin-top: 4px;
 }
 
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-link {
+  width: max-content;
+  color: var(--accent-strong);
+  font-weight: 750;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.form-error {
+  color: var(--danger) !important;
+  font-weight: 750;
+}
+
 .loading-spinner {
   width: 36px;
   height: 36px;
