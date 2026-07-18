@@ -6,6 +6,7 @@ import type { AppShellData } from "../../types/domain";
 import { requireVerifiedSession } from "../auth/middleware";
 import { getWorkspaceMembership } from "../db/repositories";
 import { ApiError } from "../errors";
+import { listWorkspaceActivity } from "../services/activity";
 import { listWorkspaceProjects } from "../services/projects";
 import { listUserWorkspaces } from "../services/workspaces";
 import { validateRequest } from "../validation";
@@ -107,6 +108,7 @@ export function createAppShellRouter(dbPool: Pool): Router {
           ? await getWorkspaceMembership(dbPool, { workspaceId: workspace.id, userSub: session.user.sub })
           : null;
         const projects = membership ? await listWorkspaceProjects(dbPool, membership) : [];
+        const activity = workspace ? await listWorkspaceActivity(dbPool, workspace.id, 10) : [];
 
         res.json({
           ...shellData,
@@ -118,7 +120,7 @@ export function createAppShellRouter(dbPool: Pool): Router {
           workspace,
           workspaces,
           projects,
-          activity: workspace ? shellData.activity : [],
+          activity,
         });
       } catch (error) {
         next(error);

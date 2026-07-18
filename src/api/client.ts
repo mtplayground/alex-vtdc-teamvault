@@ -1,5 +1,6 @@
 import type {
   AcceptInvitationResponse,
+  ActivityListResponse,
   AppShellData,
   CreateInvitationResponse,
   CreateWorkspaceResponse,
@@ -261,6 +262,14 @@ export const apiClient = {
 
     const query = workspaceId ? `?${new URLSearchParams({ workspaceId })}` : "";
     return request<AppShellData>(`/app-shell${query}`);
+  },
+
+  async listActivity(workspaceId: string): Promise<ActivityListResponse> {
+    if (import.meta.env.DEV) {
+      return { activity: shellPreviewData.activity };
+    }
+
+    return request<ActivityListResponse>(`/workspaces/${workspaceId}/activity`);
   },
 
   async listWorkspaces(): Promise<WorkspaceListResponse> {

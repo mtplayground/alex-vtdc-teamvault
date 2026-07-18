@@ -6,11 +6,11 @@ import {
   getWorkspaceMembership,
   listPendingWorkspaceInvitations,
   listWorkspaceMembers,
-  recordActivity,
   updateWorkspaceMemberRole,
 } from "../db/repositories";
 import type { WorkspaceRole } from "../db/types";
 import { ApiError } from "../errors";
+import { logActivity } from "./activity";
 
 export async function getWorkspaceRoster(dbPool: Pool, workspaceId: string): Promise<RosterResponse> {
   const [members, pendingInvitations] = await Promise.all([
@@ -62,13 +62,12 @@ export async function changeWorkspaceMemberRole(
       throw new ApiError(404, "member_not_found", "Workspace member was not found.");
     }
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.workspaceId,
       actorSub: input.actorSub,
       action: "member_role_changed",
       targetType: "member",
-      targetId: input.userSub,
-      metadata: { previousRole: membership.role, role: input.role },
+      metadata: { userSub: input.userSub, previousRole: membership.role, role: input.role },
     });
 
     await client.query("COMMIT");
@@ -111,13 +110,12 @@ export async function removeWorkspaceMember(
       throw new ApiError(404, "member_not_found", "Workspace member was not found.");
     }
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.workspaceId,
       actorSub: input.actorSub,
       action: "member_removed",
       targetType: "member",
-      targetId: input.userSub,
-      metadata: { role: membership.role },
+      metadata: { userSub: input.userSub, role: membership.role },
     });
 
     await client.query("COMMIT");

@@ -9,13 +9,13 @@ import {
   getProjectForWorkspace,
   grantProjectGuestAccess,
   listDocumentsForProject,
-  recordActivity,
 } from "../db/repositories";
 import type { DocumentKind, WorkspaceMembershipRecord } from "../db/types";
 import { emailSender } from "../email/client";
 import { buildDocumentSharedEmail, toSendEmailInput } from "../email/templates";
 import { ApiError } from "../errors";
 import { deleteObject, getReadUrl, putObject } from "../storage/client";
+import { logActivity } from "./activity";
 import { listUserWorkspaces } from "./workspaces";
 
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -165,7 +165,7 @@ export async function createWorkspaceProjectDocumentAccess(
   });
 
   if (input.disposition === "attachment") {
-    await recordActivity(dbPool, {
+    await logActivity(dbPool, {
       workspaceId: input.membership.workspaceId,
       actorSub: input.actorSub,
       action: "document_downloaded",
@@ -245,7 +245,7 @@ export async function shareWorkspaceProjectDocument(
       });
     }
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.membership.workspaceId,
       actorSub: input.actorSub,
       action: "document_shared",
@@ -338,7 +338,7 @@ export async function uploadWorkspaceProjectDocument(
       storageKey,
     });
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.membership.workspaceId,
       actorSub: input.uploaderSub,
       action: "document_uploaded",
