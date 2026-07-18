@@ -7,3 +7,10 @@ export function useAppShellQuery() {
     queryFn: apiClient.getAppShell,
   });
 }
+
+export function useSessionQuery() {
+  return useQuery({
+    queryKey: ["session"],
+    queryFn: apiClient.getSession,
+  });
+}

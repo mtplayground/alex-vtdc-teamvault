@@ -143,6 +143,39 @@ export async function upsertUser(
   return mapUser(requireOne(result.rows, "User"));
 }
 
+export async function upsertAuthenticatedUser(
+  db: Queryable,
+  input: {
+    sub: string;
+    email: string;
+    emailVerified?: boolean;
+    name?: string | null;
+    pictureUrl?: string | null;
+  },
+): Promise<{ user: UserRecord; isNew: boolean }> {
+  const result = await db.query(
+    `
+      INSERT INTO users (sub, email, email_verified, name, picture_url)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (sub) DO UPDATE
+      SET email = EXCLUDED.email,
+          email_verified = EXCLUDED.email_verified,
+          name = EXCLUDED.name,
+          picture_url = EXCLUDED.picture_url,
+          last_seen_at = NOW()
+      RETURNING *, (xmax = 0) AS inserted
+    `,
+    [input.sub, input.email, input.emailVerified ?? false, input.name ?? null, input.pictureUrl ?? null],
+  );
+
+  const row = requireOne(result.rows, "User");
+
+  return {
+    user: mapUser(row),
+    isNew: row.inserted,
+  };
+}
+
 export async function createWorkspace(
   db: Queryable,
   input: { name: string; createdBySub: string },

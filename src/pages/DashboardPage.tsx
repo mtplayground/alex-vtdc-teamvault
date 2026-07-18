@@ -1,9 +1,10 @@
 import { ShieldCheck, Upload, UserPlus } from "lucide-react";
-import { useAppShellQuery } from "../api/queries";
+import { useAppShellQuery, useSessionQuery } from "../api/queries";
 import { RoleBadge } from "../components/ui/RoleBadge";
 
 export function DashboardPage() {
   const { data } = useAppShellQuery();
+  const { data: session } = useSessionQuery();
 
   if (!data) {
     return null;
@@ -17,6 +18,18 @@ export function DashboardPage() {
 
   return (
     <div className="page-stack">
+      {session?.authenticated && session.verified ? (
+        <section className="state-panel state-panel--compact">
+          <ShieldCheck size={20} />
+          <h2>
+            {session.registrationStatus === "registered"
+              ? "Registration complete."
+              : `Welcome back, ${session.user.name ?? session.user.email}.`}
+          </h2>
+          <p>Your verified account is ready for workspace access.</p>
+        </section>
+      ) : null}
+
       <section className="page-header">
         <div>
           <p className="eyebrow">Overview</p>

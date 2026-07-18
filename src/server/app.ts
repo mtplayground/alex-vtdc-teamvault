@@ -4,6 +4,7 @@ import { config } from "./config";
 import { dbPool } from "./db/pool";
 import { errorHandler, notFound } from "./errors";
 import { createAppShellRouter } from "./routes/app-shell";
+import { createAuthRouter } from "./routes/auth";
 import { createHealthRouter } from "./routes/health";
 
 export function createApp() {
@@ -35,7 +36,8 @@ export function createApp() {
 
   const apiRouter = express.Router();
   apiRouter.use(createHealthRouter(dbPool));
-  apiRouter.use(createAppShellRouter());
+  apiRouter.use(createAuthRouter(dbPool));
+  apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);
   app.use((_req, _res, next) => next(notFound()));

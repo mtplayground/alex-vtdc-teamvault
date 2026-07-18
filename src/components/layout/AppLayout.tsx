@@ -32,6 +32,9 @@ export function AppLayout({ children }: PropsWithChildren) {
           <div className="top-bar__right">
             <RoleBadge role={data.workspace.role} />
             <div className="user-chip" aria-label={`Signed in as ${data.currentUser.name}`}>
+              {data.currentUser.pictureUrl ? (
+                <img src={data.currentUser.pictureUrl} alt="" referrerPolicy="no-referrer" />
+              ) : null}
               <span>{data.currentUser.name}</span>
               <small>{data.currentUser.email}</small>
             </div>
