@@ -208,6 +208,39 @@ export async function createWorkspaceMembership(
   return mapMembership(requireOne(result.rows, "Workspace membership"));
 }
 
+export async function listWorkspaceSummariesForUser(db: Queryable, userSub: string) {
+  const result = await db.query(
+    `
+      SELECT
+        w.id,
+        w.name,
+        wm.role,
+        COUNT(DISTINCT wm_all.id)::INT AS member_count,
+        COUNT(DISTINCT p.id)::INT AS project_count,
+        COUNT(DISTINCT d.id)::INT AS document_count,
+        w.updated_at
+      FROM workspace_memberships wm
+      JOIN workspaces w ON w.id = wm.workspace_id
+      LEFT JOIN workspace_memberships wm_all ON wm_all.workspace_id = w.id
+      LEFT JOIN projects p ON p.workspace_id = w.id AND p.archived_at IS NULL
+      LEFT JOIN documents d ON d.workspace_id = w.id AND d.deleted_at IS NULL
+      WHERE wm.user_sub = $1
+      GROUP BY w.id, w.name, wm.role, w.updated_at
+      ORDER BY w.updated_at DESC, w.created_at DESC
+    `,
+    [userSub],
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    role: row.role as WorkspaceRole,
+    memberCount: row.member_count,
+    projectCount: row.project_count,
+    documentCount: row.document_count,
+  }));
+}
+
 export async function createProject(
   db: Queryable,
   input: { workspaceId: string; name: string; createdBySub?: string | null },

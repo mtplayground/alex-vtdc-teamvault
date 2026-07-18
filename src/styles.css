@@ -140,6 +140,29 @@ a {
   font-size: 0.9rem;
 }
 
+.workspace-switcher {
+  display: grid;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.workspace-switcher select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
 .top-bar {
   display: flex;
   align-items: center;
@@ -537,6 +560,43 @@ input:focus-visible,
 .auth-form {
   display: grid;
   gap: 16px;
+}
+
+.workspace-home {
+  align-content: start;
+}
+
+.workspace-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-option {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.workspace-option:hover,
+.workspace-option--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.workspace-option span {
+  font-weight: 800;
+}
+
+.workspace-option small {
+  color: var(--text-muted);
 }
 
 .auth-link {

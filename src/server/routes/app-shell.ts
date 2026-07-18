@@ -1,27 +1,31 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import type { Pool } from "pg";
 import { z } from "zod";
 import type { AppShellData } from "../../types/domain";
 import { requireVerifiedSession } from "../auth/middleware";
+import { listUserWorkspaces } from "../services/workspaces";
 import { validateRequest } from "../validation";
 
 const querySchema = z.object({
   workspaceId: z.string().uuid().optional(),
 });
 
+const previewWorkspace = {
+  id: "preview-workspace",
+  name: "Acme Legal Review",
+  role: "owner" as const,
+  memberCount: 8,
+  projectCount: 4,
+  documentCount: 32,
+};
+
 const shellData: AppShellData = {
   currentUser: {
     name: "Workspace Owner",
     email: "owner@example.com",
   },
-  workspace: {
-    id: "preview-workspace",
-    name: "Acme Legal Review",
-    role: "owner",
-    memberCount: 8,
-    projectCount: 4,
-    documentCount: 32,
-  },
+  workspace: previewWorkspace,
+  workspaces: [previewWorkspace],
   projects: [
     {
       id: "project-1",
@@ -76,18 +80,34 @@ const shellData: AppShellData = {
 export function createAppShellRouter(dbPool: Pool): Router {
   const router = Router();
 
-  router.get("/app-shell", validateRequest("query", querySchema), requireVerifiedSession(dbPool), (req: Request, res: Response) => {
-    const session = req.auth!;
+  router.get(
+    "/app-shell",
+    validateRequest("query", querySchema),
+    ...requireVerifiedSession(dbPool),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const session = req.auth!;
+        const workspaces = await listUserWorkspaces(dbPool, session.user.sub);
+        const requestedWorkspaceId = req.query.workspaceId as string | undefined;
+        const workspace = workspaces.find((item) => item.id === requestedWorkspaceId) ?? workspaces[0] ?? null;
 
-    res.json({
-      ...shellData,
-      currentUser: {
-        name: session.user.name ?? session.user.email,
-        email: session.user.email,
-        pictureUrl: session.user.pictureUrl,
-      },
-    });
-  });
+        res.json({
+          ...shellData,
+          currentUser: {
+            name: session.user.name ?? session.user.email,
+            email: session.user.email,
+            pictureUrl: session.user.pictureUrl,
+          },
+          workspace,
+          workspaces,
+          projects: workspace ? shellData.projects : [],
+          activity: workspace ? shellData.activity : [],
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   return router;
 }

@@ -6,7 +6,7 @@ export function DashboardPage() {
   const { data } = useAppShellQuery();
   const { data: session } = useSessionQuery();
 
-  if (!data) {
+  if (!data?.workspace) {
     return null;
   }
 
