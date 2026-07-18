@@ -1,8 +1,10 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 import type { Pool } from "pg";
 import { z } from "zod";
+import { getPermissionsForRole } from "../../authorization/permissions";
 import type { AppShellData } from "../../types/domain";
 import { requireVerifiedSession } from "../auth/middleware";
+import { ApiError } from "../errors";
 import { listUserWorkspaces } from "../services/workspaces";
 import { validateRequest } from "../validation";
 
@@ -14,6 +16,7 @@ const previewWorkspace = {
   id: "preview-workspace",
   name: "Acme Legal Review",
   role: "owner" as const,
+  permissions: getPermissionsForRole("owner"),
   memberCount: 8,
   projectCount: 4,
   documentCount: 32,
@@ -89,7 +92,15 @@ export function createAppShellRouter(dbPool: Pool): Router {
         const session = req.auth!;
         const workspaces = await listUserWorkspaces(dbPool, session.user.sub);
         const requestedWorkspaceId = req.query.workspaceId as string | undefined;
-        const workspace = workspaces.find((item) => item.id === requestedWorkspaceId) ?? workspaces[0] ?? null;
+        const requestedWorkspace = requestedWorkspaceId
+          ? workspaces.find((item) => item.id === requestedWorkspaceId)
+          : undefined;
+
+        if (requestedWorkspaceId && !requestedWorkspace) {
+          throw new ApiError(403, "workspace_forbidden", "You do not have access to this workspace.");
+        }
+
+        const workspace = requestedWorkspace ?? workspaces[0] ?? null;
 
         res.json({
           ...shellData,

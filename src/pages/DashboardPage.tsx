@@ -15,6 +15,7 @@ export function DashboardPage() {
     { label: "Documents", value: data.workspace.documentCount },
     { label: "People", value: data.workspace.memberCount },
   ];
+  const permissions = data.workspace.permissions;
 
   return (
     <div className="page-stack">
@@ -49,20 +50,20 @@ export function DashboardPage() {
       </section>
 
       <section className="action-grid" aria-label="Common actions">
-        <article>
+        <article className={permissions.includes("workspace.manage") ? "" : "action-grid__limited"}>
           <ShieldCheck size={22} />
-          <h3>Permission-aware by default</h3>
-          <p>Role cues stay near workspace, project, member, and document actions.</p>
+          <h3>Workspace control</h3>
+          <p>{permissions.includes("workspace.manage") ? "You can manage workspace settings and member roles." : "Your role can use the workspace without changing owner controls."}</p>
         </article>
-        <article>
+        <article className={permissions.includes("documents.upload") ? "" : "action-grid__limited"}>
           <Upload size={22} />
-          <h3>Document workflow ready</h3>
-          <p>The layout has clear space for uploads, previews, downloads, and empty states.</p>
+          <h3>Document workflow</h3>
+          <p>{permissions.includes("documents.upload") ? "You can upload, organize, view, and download documents." : "You can view and download documents available to your role."}</p>
         </article>
-        <article>
+        <article className={permissions.includes("members.manage") ? "" : "action-grid__limited"}>
           <UserPlus size={22} />
-          <h3>Collaboration surfaces</h3>
-          <p>Members, guests, invitations, and activity have stable navigation from day one.</p>
+          <h3>Member management</h3>
+          <p>{permissions.includes("members.manage") ? "You can invite members and adjust workspace roles." : "Only owners can invite members or change roles."}</p>
         </article>
       </section>
     </div>

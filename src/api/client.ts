@@ -1,4 +1,5 @@
 import type { AppShellData, CreateWorkspaceResponse, SessionData, WorkspaceListResponse } from "../types/domain";
+import { getPermissionsForRole } from "../authorization/permissions";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -40,6 +41,7 @@ const shellPreviewData: AppShellData = {
     id: "preview-workspace",
     name: "Acme Legal Review",
     role: "owner",
+    permissions: getPermissionsForRole("owner"),
     memberCount: 8,
     projectCount: 4,
     documentCount: 32,
@@ -49,6 +51,7 @@ const shellPreviewData: AppShellData = {
       id: "preview-workspace",
       name: "Acme Legal Review",
       role: "owner",
+      permissions: getPermissionsForRole("owner"),
       memberCount: 8,
       projectCount: 4,
       documentCount: 32,
@@ -196,6 +199,7 @@ export const apiClient = {
             id: workspaceId,
             name,
             role: "owner",
+            permissions: getPermissionsForRole("owner"),
             memberCount: 1,
             projectCount: 0,
             documentCount: 0,

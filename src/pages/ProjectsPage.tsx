@@ -9,6 +9,8 @@ export function ProjectsPage() {
     return null;
   }
 
+  const canCreateProjects = Boolean(data.workspace?.permissions.includes("projects.create"));
+
   return (
     <div className="page-stack">
       <section className="page-header">
@@ -17,7 +19,7 @@ export function ProjectsPage() {
           <h2>Project folders</h2>
           <p>Each project groups documents and defines where guest visibility will be scoped.</p>
         </div>
-        <Button>
+        <Button disabled={!canCreateProjects} title={canCreateProjects ? undefined : "Your role cannot create projects."}>
           <Plus size={16} />
           New project
         </Button>
