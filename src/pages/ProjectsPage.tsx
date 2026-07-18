@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Archive, Edit3, FolderOpen, Lock, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ApiError } from "../api/client";
 import {
   useAppShellQuery,
   useArchiveProjectMutation,
@@ -19,6 +20,18 @@ import type { ProjectSummary } from "../types/domain";
 function formatDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
+
+function projectFormError(error: unknown) {
+  if (error instanceof ApiError && error.code === "project_name_taken") {
+    return "A project with that name already exists.";
+  }
+
+  if (error instanceof ApiError && error.code === "validation_error") {
+    return "Project names must be 160 characters or fewer.";
+  }
+
+  return "Project could not be saved. Check the name and try again.";
 }
 
 export function ProjectsPage() {
@@ -56,8 +69,8 @@ export function ProjectsPage() {
       setProjectName("");
       setCreateOpen(false);
       notify("Project created.", "success");
-    } catch {
-      setFormError("Project could not be created. Check the name and try again.");
+    } catch (error) {
+      setFormError(projectFormError(error));
     }
   }
 
@@ -85,8 +98,8 @@ export function ProjectsPage() {
       setEditingProject(null);
       setEditName("");
       notify("Project renamed.", "success");
-    } catch {
-      setFormError("Project could not be renamed. Check the name and try again.");
+    } catch (error) {
+      setFormError(projectFormError(error));
     }
   }
 

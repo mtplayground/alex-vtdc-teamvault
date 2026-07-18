@@ -21,6 +21,10 @@ function toProjectSummary(project: Awaited<ReturnType<typeof listProjectsForWork
   };
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+}
+
 export async function listWorkspaceProjects(dbPool: Pool, membership: WorkspaceMembershipRecord): Promise<ProjectSummary[]> {
   const projects = await listProjectsForWorkspace(dbPool, {
     workspaceId: membership.workspaceId,
@@ -66,7 +70,7 @@ export async function createWorkspaceProject(
       action: "project_created",
       targetType: "project",
       targetId: project.id,
-      metadata: { projectName: project.name },
+      metadata: { projectId: project.id, projectName: project.name },
     });
 
     await client.query("COMMIT");
@@ -80,6 +84,9 @@ export async function createWorkspaceProject(
     };
   } catch (error) {
     await client.query("ROLLBACK");
+    if (isUniqueViolation(error)) {
+      throw new ApiError(409, "project_name_taken", "A project with that name already exists.");
+    }
     throw error;
   } finally {
     client.release();
@@ -110,13 +117,16 @@ export async function renameWorkspaceProject(
       action: "project_updated",
       targetType: "project",
       targetId: project.id,
-      metadata: { projectName: project.name },
+      metadata: { projectId: project.id, projectName: project.name },
     });
 
     await client.query("COMMIT");
     return project;
   } catch (error) {
     await client.query("ROLLBACK");
+    if (isUniqueViolation(error)) {
+      throw new ApiError(409, "project_name_taken", "A project with that name already exists.");
+    }
     throw error;
   } finally {
     client.release();
@@ -146,7 +156,7 @@ export async function archiveWorkspaceProject(
       action: "project_archived",
       targetType: "project",
       targetId: project.id,
-      metadata: { projectName: project.name },
+      metadata: { projectId: project.id, projectName: project.name },
     });
 
     await client.query("COMMIT");

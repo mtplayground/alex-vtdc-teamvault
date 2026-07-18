@@ -23,12 +23,46 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 export class ApiError extends Error {
   readonly status: number;
+  readonly code?: string;
+  readonly details?: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
+    this.details = details;
   }
+}
+
+async function parseApiError(response: Response): Promise<ApiError> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      const body = (await response.json()) as {
+        error?: {
+          code?: string;
+          message?: string;
+          details?: unknown;
+        };
+      };
+
+      if (body.error) {
+        return new ApiError(
+          body.error.message ?? `Request failed with status ${response.status}`,
+          response.status,
+          body.error.code,
+          body.error.details,
+        );
+      }
+    } catch {
+      // Fall through to the text/default path.
+    }
+  }
+
+  const text = await response.text().catch(() => "");
+  return new ApiError(text || `Request failed with status ${response.status}`, response.status);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -43,7 +77,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    throw await parseApiError(response);
   }
 
   return response.json() as Promise<T>;
@@ -238,7 +272,7 @@ export const apiClient = {
     }
 
     if (!response.ok) {
-      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+      throw await parseApiError(response);
     }
 
     return response.json() as Promise<SessionData>;
@@ -384,7 +418,7 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+      throw await parseApiError(response);
     }
   },
 
@@ -458,7 +492,7 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+      throw await parseApiError(response);
     }
   },
 
@@ -511,7 +545,7 @@ export const apiClient = {
     );
 
     if (!response.ok) {
-      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+      throw await parseApiError(response);
     }
 
     return response.json() as Promise<UploadDocumentResponse>;
