@@ -116,7 +116,6 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailSendResult>
       messageId: result.id ?? null,
       subject: parsedInput.data.subject,
       recipientCount: recipientCount(parsedInput.data.to),
-      configuredFromAddress: config.email.fromAddress ?? null,
     });
 
     return { status: "sent", messageId: result.id ?? null };

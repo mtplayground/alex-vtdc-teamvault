@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import cookieParser from "cookie-parser";
 import express from "express";
 import { config } from "./config";
@@ -12,6 +14,9 @@ import { createInvitationsRouter } from "./routes/invitations";
 import { createProjectsRouter } from "./routes/projects";
 import { createRosterRouter } from "./routes/roster";
 import { createWorkspacesRouter } from "./routes/workspaces";
+
+const clientDistPath = path.resolve(process.cwd(), "dist");
+const clientIndexPath = path.join(clientDistPath, "index.html");
 
 export function createApp() {
   const app = express();
@@ -52,6 +57,19 @@ export function createApp() {
   apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);
+
+  if (existsSync(clientIndexPath)) {
+    app.use(express.static(clientDistPath, { index: false, maxAge: config.nodeEnv === "production" ? "1h" : 0 }));
+    app.get(/.*/, (req, res, next) => {
+      if (req.path.startsWith("/api")) {
+        next();
+        return;
+      }
+
+      res.sendFile(clientIndexPath);
+    });
+  }
+
   app.use((_req, _res, next) => next(notFound()));
   app.use(errorHandler);
 
