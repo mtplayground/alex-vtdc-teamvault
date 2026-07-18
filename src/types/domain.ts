@@ -63,6 +63,28 @@ export interface AcceptInvitationResponse {
   role: Role;
 }
 
+export interface RosterMember {
+  sub: string;
+  name: string | null;
+  email: string;
+  pictureUrl: string | null;
+  role: Role;
+  joinedAt: string;
+}
+
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  role: Exclude<Role, "owner">;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface RosterResponse {
+  members: RosterMember[];
+  pendingInvitations: PendingInvitation[];
+}
+
 export type SessionData =
   | {
       authenticated: false;

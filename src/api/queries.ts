@@ -45,6 +45,40 @@ export function useCreateInvitationMutation() {
   });
 }
 
+export function useRosterQuery(workspaceId?: string) {
+  return useQuery({
+    queryKey: ["roster", workspaceId],
+    queryFn: () => apiClient.getRoster(workspaceId!),
+    enabled: Boolean(workspaceId),
+  });
+}
+
+export function useUpdateMemberRoleMutation(workspaceId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: apiClient.updateMemberRole,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["roster", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+    },
+  });
+}
+
+export function useRemoveMemberMutation(workspaceId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: apiClient.removeMember,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["roster", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+    },
+  });
+}
+
 export function useAcceptInvitationMutation() {
   const queryClient = useQueryClient();
   const { setSelectedWorkspaceId } = useAppState();

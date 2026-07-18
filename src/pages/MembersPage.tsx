@@ -1,28 +1,34 @@
 import { FormEvent, useState } from "react";
-import { UserPlus } from "lucide-react";
-import { useAppShellQuery, useCreateInvitationMutation } from "../api/queries";
+import { Trash2, UserPlus } from "lucide-react";
+import {
+  useAppShellQuery,
+  useCreateInvitationMutation,
+  useRemoveMemberMutation,
+  useRosterQuery,
+  useUpdateMemberRoleMutation,
+} from "../api/queries";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
 import { Input } from "../components/ui/Input";
+import { LoadingState } from "../components/ui/LoadingState";
 import { RoleBadge } from "../components/ui/RoleBadge";
 import { useToast } from "../components/ui/Toast";
 import type { Role } from "../types/domain";
 
-const members = [
-  { name: "Avery Hart", email: "avery@example.com", role: "owner" as const },
-  { name: "Mira Lee", email: "mira@example.com", role: "member" as const },
-  { name: "Jon Bell", email: "jon@example.com", role: "guest" as const },
-];
-
 export function MembersPage() {
   const { data } = useAppShellQuery();
+  const workspaceId = data?.workspace?.id;
+  const roster = useRosterQuery(workspaceId);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [role, setRole] = useState<Extract<Role, "member" | "guest">>("member");
   const invite = useCreateInvitationMutation();
+  const updateRole = useUpdateMemberRoleMutation(workspaceId);
+  const removeMember = useRemoveMemberMutation(workspaceId);
   const { notify } = useToast();
   const canManageMembers = Boolean(data?.workspace?.permissions.includes("members.manage"));
+  const canManageRoles = Boolean(data?.workspace?.permissions.includes("roles.manage"));
 
   async function onInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,6 +54,36 @@ export function MembersPage() {
     }
   }
 
+  async function onRoleChange(userSub: string, nextRole: Role) {
+    if (!workspaceId) {
+      return;
+    }
+
+    try {
+      await updateRole.mutateAsync({ workspaceId, userSub, role: nextRole });
+      notify("Role updated.", "success");
+    } catch {
+      notify("Role could not be updated.", "error");
+    }
+  }
+
+  async function onRemove(userSub: string) {
+    if (!workspaceId) {
+      return;
+    }
+
+    try {
+      await removeMember.mutateAsync({ workspaceId, userSub });
+      notify("Member removed.", "success");
+    } catch {
+      notify("Member could not be removed.", "error");
+    }
+  }
+
+  if (roster.isLoading || !roster.data) {
+    return <LoadingState title="Loading roster" detail="Preparing members and pending invitations." />;
+  }
+
   return (
     <div className="page-stack">
       <section className="page-header">
@@ -67,18 +103,71 @@ export function MembersPage() {
       </section>
 
       <section className="list-panel">
-        {members.map((member) => (
-          <article className="list-row" key={member.email}>
+        {roster.data.members.map((member) => (
+          <article className="list-row" key={member.sub}>
             <div>
-              <h3>{member.name}</h3>
+              <h3>{member.name ?? member.email}</h3>
               <p>{member.email}</p>
             </div>
             <div className="row-actions">
               <RoleBadge role={member.role} />
+              {canManageRoles ? (
+                <select
+                  aria-label={`Change role for ${member.email}`}
+                  className="inline-select"
+                  value={member.role}
+                  onChange={(event) => void onRoleChange(member.sub, event.target.value as Role)}
+                  disabled={updateRole.isPending}
+                >
+                  <option value="owner">Owner</option>
+                  <option value="member">Member</option>
+                  <option value="guest">Guest</option>
+                </select>
+              ) : null}
+              {canManageMembers ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => void onRemove(member.sub)}
+                  disabled={removeMember.isPending}
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </Button>
+              ) : null}
               {!canManageMembers ? <span className="permission-note">View only</span> : null}
             </div>
           </article>
         ))}
+      </section>
+
+      <section className="page-stack" aria-label="Pending invitations">
+        <div className="page-header page-header--compact">
+          <div>
+            <p className="eyebrow">Pending</p>
+            <h2>Invitations</h2>
+          </div>
+        </div>
+        <section className="list-panel">
+          {roster.data.pendingInvitations.length ? (
+            roster.data.pendingInvitations.map((invitation) => (
+              <article className="list-row" key={invitation.id}>
+                <div>
+                  <h3>{invitation.email}</h3>
+                  <p>Expires {new Date(invitation.expiresAt).toLocaleDateString()}</p>
+                </div>
+                <RoleBadge role={invitation.role} />
+              </article>
+            ))
+          ) : (
+            <article className="list-row">
+              <div>
+                <h3>No pending invitations</h3>
+                <p>New invitations will appear here until they are accepted or expire.</p>
+              </div>
+            </article>
+          )}
+        </section>
       </section>
 
       <Dialog
