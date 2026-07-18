@@ -3,6 +3,7 @@ import { AppLayout } from "../components/layout/AppLayout";
 import { LoadingState } from "../components/ui/LoadingState";
 import { ActivityPage } from "../pages/ActivityPage";
 import { CheckEmailPage } from "../pages/CheckEmailPage";
+import { AcceptInvitationPage } from "../pages/AcceptInvitationPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { DocumentsPage } from "../pages/DocumentsPage";
 import { LoginPage } from "../pages/LoginPage";
@@ -32,6 +33,7 @@ export function App() {
         <Route path="/reset-password/complete" element={<SetNewPasswordPage />} />
         <Route path="/check-email" element={<CheckEmailPage />} />
         <Route path="/verified" element={<VerifiedPage />} />
+        <Route path="/invite/accept" element={<AcceptInvitationPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -46,6 +48,7 @@ export function App() {
         <Route path="/reset-password/complete" element={<SetNewPasswordPage />} />
         <Route path="/check-email" element={<CheckEmailPage />} />
         <Route path="/verified" element={<VerifiedPage />} />
+        <Route path="/invite/accept" element={<AcceptInvitationPage />} />
         <Route path="*" element={<Navigate to="/check-email" replace />} />
       </Routes>
     );
@@ -61,6 +64,7 @@ export function App() {
         <Route path="/reset-password/complete" element={<SetNewPasswordPage />} />
         <Route path="/check-email" element={<Navigate to="/" replace />} />
         <Route path="/verified" element={<VerifiedPage />} />
+        <Route path="/invite/accept" element={<AcceptInvitationPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/members" element={<MembersPage />} />

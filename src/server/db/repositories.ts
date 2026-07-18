@@ -342,6 +342,63 @@ export async function createInvitation(
   return mapInvitation(requireOne(result.rows, "Invitation"));
 }
 
+export async function findInvitationByTokenHashForUpdate(
+  db: Queryable,
+  tokenHash: string,
+): Promise<InvitationRecord | null> {
+  const result = await db.query(
+    `
+      SELECT *
+      FROM invitations
+      WHERE token_hash = $1
+      FOR UPDATE
+    `,
+    [tokenHash],
+  );
+
+  const row = result.rows[0];
+  return row ? mapInvitation(row) : null;
+}
+
+export async function acceptInvitation(
+  db: Queryable,
+  input: { invitationId: string; acceptedUserSub: string },
+): Promise<InvitationRecord> {
+  const result = await db.query(
+    `
+      UPDATE invitations
+      SET status = 'accepted',
+          accepted_user_sub = $2,
+          accepted_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [input.invitationId, input.acceptedUserSub],
+  );
+
+  return mapInvitation(requireOne(result.rows, "Invitation"));
+}
+
+export async function upsertWorkspaceMembership(
+  db: Queryable,
+  input: { workspaceId: string; userSub: string; role: WorkspaceRole },
+): Promise<WorkspaceMembershipRecord> {
+  const result = await db.query(
+    `
+      INSERT INTO workspace_memberships (workspace_id, user_sub, role)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (workspace_id, user_sub) DO UPDATE
+      SET role = EXCLUDED.role,
+          updated_at = NOW()
+      RETURNING *
+    `,
+    [input.workspaceId, input.userSub, input.role],
+  );
+
+  return mapMembership(requireOne(result.rows, "Workspace membership"));
+}
+
 export async function recordActivity(
   db: Queryable,
   input: {

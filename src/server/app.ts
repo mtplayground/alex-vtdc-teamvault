@@ -6,6 +6,7 @@ import { errorHandler, notFound } from "./errors";
 import { createAppShellRouter } from "./routes/app-shell";
 import { createAuthRouter } from "./routes/auth";
 import { createHealthRouter } from "./routes/health";
+import { createInvitationsRouter } from "./routes/invitations";
 import { createWorkspacesRouter } from "./routes/workspaces";
 
 export function createApp() {
@@ -39,6 +40,7 @@ export function createApp() {
   apiRouter.use(createHealthRouter(dbPool));
   apiRouter.use(createAuthRouter(dbPool));
   apiRouter.use(createWorkspacesRouter(dbPool));
+  apiRouter.use(createInvitationsRouter(dbPool));
   apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);

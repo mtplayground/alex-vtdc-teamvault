@@ -30,7 +30,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -477,6 +478,16 @@ input:focus-visible,
 }
 
 .input-field input {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.input-field select {
   min-height: 42px;
   width: 100%;
   border: 1px solid var(--line);
