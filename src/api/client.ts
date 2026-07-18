@@ -3,12 +3,14 @@ import type {
   AppShellData,
   CreateInvitationResponse,
   CreateWorkspaceResponse,
+  DocumentListResponse,
   ProjectListResponse,
   ProjectResponse,
   RosterMember,
   RosterResponse,
   Role,
   SessionData,
+  UploadDocumentResponse,
   WorkspaceListResponse,
 } from "../types/domain";
 import { getPermissionsForRole } from "../authorization/permissions";
@@ -165,6 +167,33 @@ const rosterPreviewData: RosterResponse = {
       role: "guest",
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ],
+};
+
+const documentPreviewData: DocumentListResponse = {
+  documents: [
+    {
+      id: "document-1",
+      projectId: "project-1",
+      originalFilename: "Board packet.pdf",
+      contentType: "application/pdf",
+      kind: "pdf",
+      sizeBytes: 1840000,
+      uploadedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      uploaderName: "Avery Hart",
+      uploaderEmail: "avery@example.com",
+    },
+    {
+      id: "document-2",
+      projectId: "project-1",
+      originalFilename: "Signature page.png",
+      contentType: "image/png",
+      kind: "image",
+      sizeBytes: 420000,
+      uploadedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      uploaderName: "Mira Lee",
+      uploaderEmail: "mira@example.com",
     },
   ],
 };
@@ -414,5 +443,60 @@ export const apiClient = {
     if (!response.ok) {
       throw new ApiError(`Request failed with status ${response.status}`, response.status);
     }
+  },
+
+  async listDocuments(input: { workspaceId: string; projectId: string }): Promise<DocumentListResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        documents: documentPreviewData.documents.filter((document) => document.projectId === input.projectId),
+      };
+    }
+
+    return request<DocumentListResponse>(
+      `/workspaces/${input.workspaceId}/projects/${input.projectId}/documents`,
+    );
+  },
+
+  async uploadDocument(input: {
+    workspaceId: string;
+    projectId: string;
+    file: File;
+  }): Promise<UploadDocumentResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        document: {
+          id: crypto.randomUUID(),
+          projectId: input.projectId,
+          originalFilename: input.file.name,
+          contentType: input.file.type,
+          kind: input.file.type === "application/pdf" ? "pdf" : "image",
+          sizeBytes: input.file.size,
+          uploadedAt: new Date().toISOString(),
+          uploaderName: shellPreviewData.currentUser.name,
+          uploaderEmail: shellPreviewData.currentUser.email,
+        },
+      };
+    }
+
+    const body = new FormData();
+    body.append("file", input.file);
+
+    const response = await fetch(
+      `${apiBaseUrl}/workspaces/${input.workspaceId}/projects/${input.projectId}/documents`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+        body,
+      },
+    );
+
+    if (!response.ok) {
+      throw new ApiError(`Request failed with status ${response.status}`, response.status);
+    }
+
+    return response.json() as Promise<UploadDocumentResponse>;
   },
 };

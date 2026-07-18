@@ -30,6 +30,26 @@ export interface ProjectResponse {
   project: ProjectSummary;
 }
 
+export interface DocumentSummary {
+  id: string;
+  projectId: string;
+  originalFilename: string;
+  contentType: string;
+  kind: "image" | "pdf";
+  sizeBytes: number;
+  uploadedAt: string;
+  uploaderName: string | null;
+  uploaderEmail: string | null;
+}
+
+export interface DocumentListResponse {
+  documents: DocumentSummary[];
+}
+
+export interface UploadDocumentResponse {
+  document: DocumentSummary;
+}
+
 export interface ActivityItem {
   id: string;
   actor: string;

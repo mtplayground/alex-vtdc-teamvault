@@ -524,6 +524,33 @@ export async function createDocument(
   return mapDocument(requireOne(result.rows, "Document"));
 }
 
+export async function listDocumentsForProject(
+  db: Queryable,
+  input: { workspaceId: string; projectId: string },
+) {
+  const result = await db.query(
+    `
+      SELECT
+        d.*,
+        u.name AS uploader_name,
+        u.email AS uploader_email
+      FROM documents d
+      LEFT JOIN users u ON u.sub = d.uploader_sub
+      WHERE d.workspace_id = $1
+        AND d.project_id = $2
+        AND d.deleted_at IS NULL
+      ORDER BY d.created_at DESC
+    `,
+    [input.workspaceId, input.projectId],
+  );
+
+  return result.rows.map((row) => ({
+    ...mapDocument(row),
+    uploaderName: row.uploader_name as string | null,
+    uploaderEmail: row.uploader_email as string | null,
+  }));
+}
+
 export async function createInvitation(
   db: Queryable,
   input: {
