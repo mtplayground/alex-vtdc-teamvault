@@ -1,0 +1,51 @@
+Architecture plan
+
+Product scope
+- Build a self-hostable workspace document-sharing app with verified accounts, session auth, role-based workspace membership, project-scoped documents, invitations, activity history, transactional email, object storage, and end-to-end coverage.
+- Keep the UI calm, professional, and trustworthy: neutral surfaces, one confident accent, clear hierarchy, role/status cues, reusable primitives, and consistent empty/loading/error states.
+
+Proposed stack shape
+- Single repository with a web frontend and backend API. Choose the concrete framework during Issue #1 based on repository shape, but keep a clean boundary between client UI, shared request/response types, API handlers, services, and persistence.
+- Backend owns validation, authorization, session checks, token generation, email dispatch, storage access, and activity logging.
+- Frontend owns routing, authenticated app shell, API client calls, permission-aware controls, and user-facing states.
+
+Module structure
+- `frontend/` or `src/frontend/`: router, app layout, workspace/project/document pages, auth pages, invite/reset/verify pages, shared UI primitives, toasts, loading/empty/error components, and permission-aware controls.
+- `backend/` or `src/server/`: HTTP server, route registration, middleware, request validation, centralized errors, health check, auth/session extraction, and API handlers.
+- `shared/` or `src/shared/`: DTOs, role enums, permission capability names, activity action types, document type constants, and API error shapes.
+- `db/` or `migrations/`: schema migrations, indexes, constraints, seed/test helpers, and data-access helpers.
+- `services/`: domain services for users/auth, workspaces, memberships/permissions, invitations, projects, documents, storage, email, activity logging, and rate limiting.
+- `emails/`: templates for verification, password reset, workspace invitation, and document-shared notifications.
+- `tests/e2e/`: browser-level journeys and email-trigger assertions for the core flows.
+- `docs/`: self-hosting setup, environment variables, storage/email/database requirements, and operational notes.
+
+Core data model
+- `users`: email, password hash, verification state, timestamps.
+- `workspaces`: name, creator/owner reference, timestamps.
+- `workspace_memberships`: workspace, user, role (`owner`, `member`, `guest`), timestamps, unique `(workspace_id, user_id)`.
+- `projects`: workspace, name, archived/removed state, timestamps.
+- `documents`: project, uploader, original filename, content type, document kind (`image`, `pdf`), size, storage key, timestamps.
+- `invitations`: workspace, inviter, invitee email, assigned role, token hash, status, expiry, accepted user, timestamps.
+- `project_guest_access` if guests must be scoped below the workspace; use this to constrain guest project visibility/downloads.
+- `activity_entries`: workspace, actor, action type, target type/id, metadata JSON, timestamp.
+- Optional token tables for verification/password reset if tokens are not embedded with signed expiry.
+
+Issue dependency plan
+- Foundation: Issue #1 establishes frontend shell, API client, UI primitives, routing, design tokens, and app state patterns.
+- Data/config: Issue #2 creates migrations and core data access. Issue #3 adds environment loading, backend skeleton, storage client, health check, validation, and centralized errors.
+- Email base: Issue #4 creates an email sending interface. Issue #5 adds templates used by auth, invitations, and document sharing.
+- Auth: Issue #6 implements registration and verification. Issue #7 adds login, signed sessions, auth middleware/context, protected routes, and sign-out. Issue #8 adds password reset.
+- Workspace domain: Issue #9 creates/list workspaces. Issue #10 centralizes permission checks and exposes capabilities to the UI. Issue #11 adds invitations. Issue #12 adds roster and role/removal controls.
+- Project/document domain: Issue #13 manages projects. Issue #14 uploads documents through object storage. Issue #15 previews/downloads files with short-lived, permission-checked access. Issue #16 sends document-shared email and records share activity.
+- Activity and hardening: Issue #17 provides a shared activity logging service and integrations. Issue #18 builds the paginated activity view. Issue #19 adds E2E coverage. Issue #20 hardens permissions, validation, abuse protection, and UX states. Issue #21 finalizes docs, `.env.example`, runtime configuration, and self-hosted deployment verification.
+
+Key design decisions
+- Authorization is enforced in backend services and handlers first; frontend gating is only a usability layer.
+- Roles are workspace-level, with guests constrained by explicit project/document access records where needed.
+- All tokens are high-entropy, stored hashed, time-limited, single-use where applicable, and rate-limited for public request flows.
+- File downloads and previews go through permission-checked endpoints or short-lived signed URLs; object storage keys are never treated as authorization.
+- Activity logging uses a single service with typed action names and metadata so later features can add entries without duplicating persistence logic.
+- Email sending is behind an internal interface so local/dev/test can capture sends while production can use the platform service.
+- The app must derive public origin from forwarded headers or `ALLOWED_CORS_ORIGIN` when building links or validating origins behind the reverse proxy.
+- Configuration is environment-driven with a complete `.env.example`; secrets and local runtime files remain ignored.
+- E2E tests should use deterministic test data, an isolated database/storage namespace, and a test email sink/fake.
