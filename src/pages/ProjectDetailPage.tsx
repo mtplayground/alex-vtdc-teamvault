@@ -1,6 +1,7 @@
 import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import { Archive, ArrowLeft, FileImage, FileText, FileUp, FolderOpen, Lock } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ApiError } from "../api/client";
 import {
   useAppShellQuery,
   useArchiveProjectMutation,
@@ -28,6 +29,34 @@ function formatBytes(bytes: number) {
   }
 
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function uploadErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return "Document could not be uploaded.";
+  }
+
+  if (error.code === "unsupported_document_type") {
+    return "Only PDF and image files can be uploaded.";
+  }
+
+  if (error.code === "document_too_large") {
+    return "Uploaded files must be 10 MB or smaller.";
+  }
+
+  if (error.code === "empty_document") {
+    return "Uploaded file is empty.";
+  }
+
+  if (error.code === "document_name_required") {
+    return "Uploaded file needs a filename.";
+  }
+
+  if (error.status === 403) {
+    return "Your role cannot upload documents.";
+  }
+
+  return error.message || "Document could not be uploaded.";
 }
 
 export function ProjectDetailPage() {
@@ -101,8 +130,8 @@ export function ProjectDetailPage() {
       if (inputRef.current) {
         inputRef.current.value = "";
       }
-    } catch {
-      notify("Document could not be uploaded.", "error");
+    } catch (error) {
+      notify(uploadErrorMessage(error), "error");
     }
   }
 

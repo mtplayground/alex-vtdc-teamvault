@@ -58,7 +58,8 @@ export async function inviteWorkspaceMember(
     role: WorkspaceRole;
   },
 ) {
-  rateLimitInvite(input);
+  const email = input.email.trim().toLowerCase();
+  rateLimitInvite({ ...input, email });
 
   const workspace = (await listUserWorkspaces(dbPool, input.inviterSub)).find((item) => item.id === input.workspaceId);
 
@@ -78,7 +79,7 @@ export async function inviteWorkspaceMember(
     invitation = await createInvitation(dbPool, {
       workspaceId: input.workspaceId,
       invitedBySub: input.inviterSub,
-      email: input.email,
+      email,
       role: input.role,
       tokenHash,
       expiresAt,
@@ -97,7 +98,7 @@ export async function inviteWorkspaceMember(
     action: "invitation_created",
     targetType: "invitation",
     targetId: invitation.id,
-    metadata: { email: input.email, role: input.role },
+    metadata: { email, role: input.role },
   });
 
   const template = buildWorkspaceInvitationEmail({
@@ -106,7 +107,7 @@ export async function inviteWorkspaceMember(
     workspaceName: workspace.name,
     role: input.role,
   });
-  const emailResult = await emailSender.send(toSendEmailInput(input.email, template));
+  const emailResult = await emailSender.send(toSendEmailInput(email, template));
 
   return {
     invitationId: invitation.id,

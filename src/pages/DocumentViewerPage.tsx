@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { ArrowLeft, Download, FileImage, FileText, Share2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { ApiError } from "../api/client";
 import {
   useAppShellQuery,
   useDocumentDownloadMutation,
@@ -26,6 +27,26 @@ function formatBytes(bytes: number) {
   }
 
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function shareErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return "Document could not be shared. Try again shortly.";
+  }
+
+  if (error.code === "recipient_not_found") {
+    return "Share with an existing workspace member or guest.";
+  }
+
+  if (error.code === "validation_error") {
+    return "Enter a valid recipient email address.";
+  }
+
+  if (error.status === 403) {
+    return "Your role cannot share this document.";
+  }
+
+  return error.message || "Document could not be shared. Try again shortly.";
 }
 
 export function DocumentViewerPage() {
@@ -106,8 +127,8 @@ export function DocumentViewerPage() {
           : "Share recorded; email delivery is pending.",
         "success",
       );
-    } catch {
-      setShareError("Document could not be shared. Choose an existing workspace member or guest.");
+    } catch (error) {
+      setShareError(shareErrorMessage(error));
     }
   }
 

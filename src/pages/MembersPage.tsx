@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Trash2, UserPlus } from "lucide-react";
+import { ApiError } from "../api/client";
 import {
   useAppShellQuery,
   useCreateInvitationMutation,
@@ -14,6 +15,42 @@ import { LoadingState } from "../components/ui/LoadingState";
 import { RoleBadge } from "../components/ui/RoleBadge";
 import { useToast } from "../components/ui/Toast";
 import type { Role } from "../types/domain";
+
+function invitationErrorMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return "Invitation could not be created. Try again shortly.";
+  }
+
+  if (error.code === "invitation_already_pending") {
+    return "An invitation is already pending for that email address.";
+  }
+
+  if (error.code === "invitation_rate_limited") {
+    return "Too many invitations have been sent to that email. Try again shortly.";
+  }
+
+  if (error.code === "validation_error") {
+    return "Enter a valid email address before sending an invitation.";
+  }
+
+  return error.message || "Invitation could not be created. Try again shortly.";
+}
+
+function roleChangeErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.code === "last_owner_required") {
+    return "A workspace must keep at least one owner.";
+  }
+
+  return "Role could not be updated.";
+}
+
+function removeMemberErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.code === "last_owner_required") {
+    return "A workspace must keep at least one owner.";
+  }
+
+  return "Member could not be removed.";
+}
 
 export function MembersPage() {
   const { data } = useAppShellQuery();
@@ -49,8 +86,8 @@ export function MembersPage() {
       setRole("member");
       setInviteOpen(false);
       notify(result.emailStatus === "sent" ? "Invitation sent." : "Invitation created; email delivery is pending.", "success");
-    } catch {
-      setInviteError("Invitation could not be created. Check for a pending invite or try again shortly.");
+    } catch (error) {
+      setInviteError(invitationErrorMessage(error));
     }
   }
 
@@ -62,8 +99,8 @@ export function MembersPage() {
     try {
       await updateRole.mutateAsync({ workspaceId, userSub, role: nextRole });
       notify("Role updated.", "success");
-    } catch {
-      notify("Role could not be updated.", "error");
+    } catch (error) {
+      notify(roleChangeErrorMessage(error), "error");
     }
   }
 
@@ -75,8 +112,8 @@ export function MembersPage() {
     try {
       await removeMember.mutateAsync({ workspaceId, userSub });
       notify("Member removed.", "success");
-    } catch {
-      notify("Member could not be removed.", "error");
+    } catch (error) {
+      notify(removeMemberErrorMessage(error), "error");
     }
   }
 

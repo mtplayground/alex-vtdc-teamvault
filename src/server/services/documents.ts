@@ -58,6 +58,10 @@ function contentDisposition(disposition: "inline" | "attachment", filename: stri
 function validateUpload(file: Express.Multer.File): DocumentKind {
   const kind = allowedContentTypes[file.mimetype];
 
+  if (!file.originalname.trim()) {
+    throw new ApiError(400, "document_name_required", "Uploaded file needs a filename.");
+  }
+
   if (!kind) {
     throw new ApiError(400, "unsupported_document_type", "Only PDF and image files can be uploaded.");
   }

@@ -1,10 +1,30 @@
 import { useEffect, useRef } from "react";
 import { CheckCircle2, LogIn, MailCheck } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { apiClient } from "../api/client";
+import { ApiError, apiClient } from "../api/client";
 import { useAcceptInvitationMutation } from "../api/queries";
 import { LoadingState } from "../components/ui/LoadingState";
 import { useAuth } from "../state/AuthContext";
+
+function invitationFailureMessage(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return "The invitation could not be accepted. Try reopening the link from your email.";
+  }
+
+  if (error.code === "invitation_expired") {
+    return "This invitation has expired. Ask a workspace owner to send a new one.";
+  }
+
+  if (error.code === "invitation_invalid") {
+    return "This invitation has already been used or is no longer valid.";
+  }
+
+  if (error.code === "invitation_email_mismatch") {
+    return "Sign in with the email address that received this invitation.";
+  }
+
+  return error.message || "The invitation could not be accepted. Try reopening the link from your email.";
+}
 
 export function AcceptInvitationPage() {
   const [searchParams] = useSearchParams();
@@ -91,7 +111,7 @@ export function AcceptInvitationPage() {
           </div>
           <p className="eyebrow">Invitation</p>
           <h1>Invitation could not be accepted</h1>
-          <p>The invitation may be expired, already used, or tied to a different email address.</p>
+          <p>{invitationFailureMessage(acceptInvitation.error)}</p>
           <Link className="button button--primary button--md" to="/">
             Go home
           </Link>
