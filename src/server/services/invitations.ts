@@ -5,13 +5,13 @@ import {
   acceptInvitation,
   createInvitation,
   findInvitationByTokenHashForUpdate,
-  recordActivity,
   upsertWorkspaceMembership,
 } from "../db/repositories";
 import type { InvitationRecord, WorkspaceRole } from "../db/types";
 import { emailSender } from "../email/client";
 import { buildWorkspaceInvitationEmail, toSendEmailInput } from "../email/templates";
 import { ApiError } from "../errors";
+import { logActivity } from "./activity";
 import { listUserWorkspaces } from "./workspaces";
 
 const invitationTtlMs = 7 * 24 * 60 * 60 * 1000;
@@ -91,7 +91,7 @@ export async function inviteWorkspaceMember(
     throw error;
   }
 
-  await recordActivity(dbPool, {
+  await logActivity(dbPool, {
     workspaceId: input.workspaceId,
     actorSub: input.inviterSub,
     action: "invitation_created",
@@ -148,7 +148,7 @@ export async function acceptWorkspaceInvitation(
       acceptedUserSub: input.userSub,
     });
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: invitation.workspaceId,
       actorSub: input.userSub,
       action: "invitation_accepted",

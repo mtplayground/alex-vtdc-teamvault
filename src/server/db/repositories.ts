@@ -742,3 +742,34 @@ export async function recordActivity(
 
   return mapActivity(requireOne(result.rows, "Activity entry"));
 }
+
+export async function listWorkspaceActivityEntries(
+  db: Queryable,
+  input: { workspaceId: string; limit?: number },
+) {
+  const result = await db.query(
+    `
+      SELECT
+        ae.*,
+        u.name AS actor_name,
+        u.email AS actor_email,
+        wm.role AS actor_role
+      FROM activity_entries ae
+      LEFT JOIN users u ON u.sub = ae.actor_sub
+      LEFT JOIN workspace_memberships wm
+        ON wm.workspace_id = ae.workspace_id
+        AND wm.user_sub = ae.actor_sub
+      WHERE ae.workspace_id = $1
+      ORDER BY ae.created_at DESC
+      LIMIT $2
+    `,
+    [input.workspaceId, input.limit ?? 50],
+  );
+
+  return result.rows.map((row) => ({
+    ...mapActivity(row),
+    actorName: row.actor_name as string | null,
+    actorEmail: row.actor_email as string | null,
+    actorRole: row.actor_role as WorkspaceRole | null,
+  }));
+}

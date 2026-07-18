@@ -75,6 +75,10 @@ export interface ActivityItem {
   occurredAt: string;
 }
 
+export interface ActivityListResponse {
+  activity: ActivityItem[];
+}
+
 export interface AppShellData {
   currentUser: {
     name: string;

@@ -3,8 +3,8 @@ import {
   createWorkspace,
   createWorkspaceMembership,
   listWorkspaceSummariesForUser,
-  recordActivity,
 } from "../db/repositories";
+import { logActivity } from "./activity";
 
 export async function listUserWorkspaces(dbPool: Pool, userSub: string) {
   return listWorkspaceSummariesForUser(dbPool, userSub);
@@ -23,7 +23,7 @@ export async function createOwnedWorkspace(dbPool: Pool, input: { name: string; 
       role: "owner",
     });
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: workspace.id,
       actorSub: input.ownerSub,
       action: "workspace_created",

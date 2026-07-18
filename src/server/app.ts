@@ -3,6 +3,7 @@ import express from "express";
 import { config } from "./config";
 import { dbPool } from "./db/pool";
 import { errorHandler, notFound } from "./errors";
+import { createActivityRouter } from "./routes/activity";
 import { createAppShellRouter } from "./routes/app-shell";
 import { createAuthRouter } from "./routes/auth";
 import { createDocumentsRouter } from "./routes/documents";
@@ -47,6 +48,7 @@ export function createApp() {
   apiRouter.use(createRosterRouter(dbPool));
   apiRouter.use(createProjectsRouter(dbPool));
   apiRouter.use(createDocumentsRouter(dbPool));
+  apiRouter.use(createActivityRouter(dbPool));
   apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);

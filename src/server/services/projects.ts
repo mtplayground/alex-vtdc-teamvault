@@ -5,11 +5,11 @@ import {
   createProject,
   getProjectForWorkspace,
   listProjectsForWorkspace,
-  recordActivity,
   renameProject,
 } from "../db/repositories";
 import type { WorkspaceMembershipRecord } from "../db/types";
 import { ApiError } from "../errors";
+import { logActivity } from "./activity";
 
 function toProjectSummary(project: Awaited<ReturnType<typeof listProjectsForWorkspace>>[number]): ProjectSummary {
   return {
@@ -60,7 +60,7 @@ export async function createWorkspaceProject(
       name: input.name,
     });
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.workspaceId,
       actorSub: input.actorSub,
       action: "project_created",
@@ -104,7 +104,7 @@ export async function renameWorkspaceProject(
       throw new ApiError(404, "project_not_found", "Project was not found.");
     }
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.workspaceId,
       actorSub: input.actorSub,
       action: "project_updated",
@@ -140,7 +140,7 @@ export async function archiveWorkspaceProject(
       throw new ApiError(404, "project_not_found", "Project was not found.");
     }
 
-    await recordActivity(client, {
+    await logActivity(client, {
       workspaceId: input.workspaceId,
       actorSub: input.actorSub,
       action: "project_archived",

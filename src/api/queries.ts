@@ -25,6 +25,14 @@ export function useWorkspacesQuery() {
   });
 }
 
+export function useActivityQuery(workspaceId?: string) {
+  return useQuery({
+    queryKey: ["activity", workspaceId],
+    queryFn: () => apiClient.listActivity(workspaceId!),
+    enabled: Boolean(workspaceId),
+  });
+}
+
 export function useCreateWorkspaceMutation() {
   const queryClient = useQueryClient();
   const { setSelectedWorkspaceId } = useAppState();
@@ -40,8 +48,14 @@ export function useCreateWorkspaceMutation() {
 }
 
 export function useCreateInvitationMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: apiClient.createInvitation,
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["activity", variables.workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+    },
   });
 }
 
@@ -62,6 +76,7 @@ export function useUpdateMemberRoleMutation(workspaceId?: string) {
       void queryClient.invalidateQueries({ queryKey: ["roster", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+      void queryClient.invalidateQueries({ queryKey: ["activity", workspaceId] });
     },
   });
 }
@@ -75,6 +90,7 @@ export function useRemoveMemberMutation(workspaceId?: string) {
       void queryClient.invalidateQueries({ queryKey: ["roster", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+      void queryClient.invalidateQueries({ queryKey: ["activity", workspaceId] });
     },
   });
 }
@@ -118,6 +134,7 @@ export function useCreateProjectMutation(workspaceId?: string) {
       void queryClient.invalidateQueries({ queryKey: ["projects", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
       void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["activity", workspaceId] });
     },
   });
 }
@@ -131,6 +148,7 @@ export function useRenameProjectMutation(workspaceId?: string, projectId?: strin
       void queryClient.invalidateQueries({ queryKey: ["projects", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["project", workspaceId, projectId] });
       void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+      void queryClient.invalidateQueries({ queryKey: ["activity", workspaceId] });
     },
   });
 }
@@ -145,6 +163,7 @@ export function useArchiveProjectMutation(workspaceId?: string) {
       void queryClient.invalidateQueries({ queryKey: ["project", workspaceId, variables.projectId] });
       void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
       void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["activity", workspaceId] });
     },
   });
 }
@@ -168,6 +187,7 @@ export function useUploadDocumentMutation(workspaceId?: string, projectId?: stri
       void queryClient.invalidateQueries({ queryKey: ["projects", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
       void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      void queryClient.invalidateQueries({ queryKey: ["activity", workspaceId] });
     },
   });
 }
@@ -200,13 +220,25 @@ export function useDocumentPreviewUrlQuery(workspaceId?: string, projectId?: str
 }
 
 export function useDocumentDownloadMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: apiClient.createDocumentDownloadUrl,
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["activity", variables.workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+    },
   });
 }
 
 export function useShareDocumentMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: apiClient.shareDocument,
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["activity", variables.workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["app-shell"] });
+    },
   });
 }
