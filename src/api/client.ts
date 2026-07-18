@@ -264,12 +264,17 @@ export const apiClient = {
     return request<AppShellData>(`/app-shell${query}`);
   },
 
-  async listActivity(workspaceId: string): Promise<ActivityListResponse> {
+  async listActivity(input: { workspaceId: string; limit?: number; offset?: number }): Promise<ActivityListResponse> {
     if (import.meta.env.DEV) {
-      return { activity: shellPreviewData.activity };
+      return { activity: shellPreviewData.activity, nextOffset: null };
     }
 
-    return request<ActivityListResponse>(`/workspaces/${workspaceId}/activity`);
+    const query = new URLSearchParams({
+      limit: String(input.limit ?? 25),
+      offset: String(input.offset ?? 0),
+    });
+
+    return request<ActivityListResponse>(`/workspaces/${input.workspaceId}/activity?${query}`);
   },
 
   async listWorkspaces(): Promise<WorkspaceListResponse> {
