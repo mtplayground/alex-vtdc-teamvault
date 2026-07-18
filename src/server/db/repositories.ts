@@ -290,6 +290,41 @@ export async function listWorkspaceMembers(db: Queryable, workspaceId: string) {
   }));
 }
 
+export async function findWorkspaceMemberByEmail(
+  db: Queryable,
+  input: { workspaceId: string; email: string },
+) {
+  const result = await db.query(
+    `
+      SELECT
+        u.sub,
+        u.name,
+        u.email,
+        u.picture_url,
+        wm.role,
+        wm.created_at AS joined_at
+      FROM workspace_memberships wm
+      JOIN users u ON u.sub = wm.user_sub
+      WHERE wm.workspace_id = $1
+        AND lower(u.email::TEXT) = lower($2)
+    `,
+    [input.workspaceId, input.email],
+  );
+
+  const row = result.rows[0];
+
+  return row
+    ? {
+        sub: row.sub,
+        name: row.name,
+        email: row.email,
+        pictureUrl: row.picture_url,
+        role: row.role as WorkspaceRole,
+        joinedAt: row.joined_at,
+      }
+    : null;
+}
+
 export async function listPendingWorkspaceInvitations(db: Queryable, workspaceId: string) {
   const result = await db.query(
     `
@@ -479,6 +514,22 @@ export async function archiveProject(
 
   const row = result.rows[0];
   return row ? mapProject(row) : null;
+}
+
+export async function grantProjectGuestAccess(
+  db: Queryable,
+  input: { workspaceId: string; projectId: string; userSub: string; grantedBySub: string },
+): Promise<boolean> {
+  const result = await db.query(
+    `
+      INSERT INTO project_guest_access (workspace_id, project_id, user_sub, granted_by_sub)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (project_id, user_sub) DO NOTHING
+    `,
+    [input.workspaceId, input.projectId, input.userSub, input.grantedBySub],
+  );
+
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function createDocument(

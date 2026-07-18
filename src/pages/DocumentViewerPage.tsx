@@ -1,13 +1,17 @@
-import { ArrowLeft, Download, FileImage, FileText } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { ArrowLeft, Download, FileImage, FileText, Share2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   useAppShellQuery,
   useDocumentDownloadMutation,
   useDocumentPreviewUrlQuery,
   useDocumentQuery,
+  useShareDocumentMutation,
 } from "../api/queries";
 import { Button } from "../components/ui/Button";
+import { Dialog } from "../components/ui/Dialog";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Input } from "../components/ui/Input";
 import { LoadingState } from "../components/ui/LoadingState";
 import { useToast } from "../components/ui/Toast";
 
@@ -31,7 +35,11 @@ export function DocumentViewerPage() {
   const document = useDocumentQuery(workspaceId, projectId, documentId);
   const preview = useDocumentPreviewUrlQuery(workspaceId, projectId, documentId);
   const download = useDocumentDownloadMutation();
+  const share = useShareDocumentMutation();
   const { notify } = useToast();
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareError, setShareError] = useState<string | null>(null);
 
   if (!data?.workspace || document.isLoading) {
     return <LoadingState title="Loading document" detail="Checking secure access." />;
@@ -54,6 +62,7 @@ export function DocumentViewerPage() {
 
   const currentDocument = document.data.document;
   const canDownload = data.workspace.permissions.includes("documents.download");
+  const canShare = data.workspace.permissions.includes("documents.organize");
 
   async function onDownload() {
     if (!workspaceId || !projectId || !documentId) {
@@ -73,6 +82,35 @@ export function DocumentViewerPage() {
     }
   }
 
+  async function onShare(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!workspaceId || !projectId || !documentId) {
+      return;
+    }
+
+    setShareError(null);
+
+    try {
+      const result = await share.mutateAsync({
+        workspaceId,
+        projectId,
+        documentId,
+        email: shareEmail,
+      });
+      setShareEmail("");
+      setShareOpen(false);
+      notify(
+        result.emailStatus === "sent"
+          ? "Document shared."
+          : "Share recorded; email delivery is pending.",
+        "success",
+      );
+    } catch {
+      setShareError("Document could not be shared. Choose an existing workspace member or guest.");
+    }
+  }
+
   return (
     <div className="page-stack">
       <section className="page-header">
@@ -88,6 +126,18 @@ export function DocumentViewerPage() {
             <ArrowLeft size={16} />
             Project
           </Link>
+          <Button
+            variant="secondary"
+            disabled={!canShare}
+            title={canShare ? undefined : "Your role cannot share documents."}
+            onClick={() => {
+              setShareError(null);
+              setShareOpen(true);
+            }}
+          >
+            <Share2 size={16} />
+            Share
+          </Button>
           <Button
             disabled={!canDownload || download.isPending}
             title={canDownload ? undefined : "Your role cannot download documents."}
@@ -116,6 +166,28 @@ export function DocumentViewerPage() {
           <div className="document-viewer__empty">Preview could not be loaded.</div>
         )}
       </section>
+
+      <Dialog
+        open={shareOpen}
+        title="Share document"
+        description="Send access to an existing workspace member or guest."
+        onClose={() => setShareOpen(false)}
+      >
+        <form className="dialog-actions" onSubmit={onShare}>
+          <Input
+            label="Recipient email"
+            type="email"
+            value={shareEmail}
+            onChange={(event) => setShareEmail(event.target.value)}
+            required
+          />
+          {shareError ? <p className="form-error">{shareError}</p> : null}
+          <Button type="submit" disabled={share.isPending || !shareEmail.trim()}>
+            <Share2 size={16} />
+            {share.isPending ? "Sharing" : "Share document"}
+          </Button>
+        </form>
+      </Dialog>
     </div>
   );
 }

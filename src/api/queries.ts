@@ -204,3 +204,9 @@ export function useDocumentDownloadMutation() {
     mutationFn: apiClient.createDocumentDownloadUrl,
   });
 }
+
+export function useShareDocumentMutation() {
+  return useMutation({
+    mutationFn: apiClient.shareDocument,
+  });
+}
