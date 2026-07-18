@@ -1,3 +1,5 @@
+import type { Permission } from "../authorization/permissions";
+
 export type Role = "owner" | "member" | "guest";
 
 export type PermissionStatus = "allowed" | "limited" | "blocked";
@@ -6,6 +8,7 @@ export interface WorkspaceSummary {
   id: string;
   name: string;
   role: Role;
+  permissions: Permission[];
   memberCount: number;
   projectCount: number;
   documentCount: number;

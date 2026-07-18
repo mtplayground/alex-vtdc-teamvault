@@ -11,6 +11,7 @@ import type {
   WorkspaceRecord,
   WorkspaceRole,
 } from "./types";
+import { getPermissionsForRole } from "../../authorization/permissions";
 
 type Queryable = Pick<Pool | PoolClient, "query">;
 
@@ -235,10 +236,28 @@ export async function listWorkspaceSummariesForUser(db: Queryable, userSub: stri
     id: row.id,
     name: row.name,
     role: row.role as WorkspaceRole,
+    permissions: getPermissionsForRole(row.role as WorkspaceRole),
     memberCount: row.member_count,
     projectCount: row.project_count,
     documentCount: row.document_count,
   }));
+}
+
+export async function getWorkspaceMembership(
+  db: Queryable,
+  input: { workspaceId: string; userSub: string },
+): Promise<WorkspaceMembershipRecord | null> {
+  const result = await db.query(
+    `
+      SELECT *
+      FROM workspace_memberships
+      WHERE workspace_id = $1 AND user_sub = $2
+    `,
+    [input.workspaceId, input.userSub],
+  );
+
+  const row = result.rows[0];
+  return row ? mapMembership(row) : null;
 }
 
 export async function createProject(

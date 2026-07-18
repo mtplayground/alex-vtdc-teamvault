@@ -302,6 +302,10 @@ a {
   padding: 20px;
 }
 
+.action-grid__limited {
+  background: #fbfcfd !important;
+}
+
 .action-grid svg {
   color: var(--accent);
 }
@@ -436,6 +440,18 @@ input:focus-visible,
 
 .timeline-row .role-badge {
   margin-left: auto;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.permission-note {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
 }
 
 .timeline-marker {
