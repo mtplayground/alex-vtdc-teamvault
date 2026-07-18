@@ -1,9 +1,8 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import type { Pool } from "pg";
 import { z } from "zod";
 import type { AppShellData } from "../../types/domain";
-import { getAuthenticatedSession } from "../auth/session";
-import { ApiError } from "../errors";
+import { requireVerifiedSession } from "../auth/middleware";
 import { validateRequest } from "../validation";
 
 const querySchema = z.object({
@@ -74,37 +73,20 @@ const shellData: AppShellData = {
   ],
 };
 
-export function createAppShellRouter(dbPool?: Pool): Router {
+export function createAppShellRouter(dbPool: Pool): Router {
   const router = Router();
 
-  router.get("/app-shell", validateRequest("query", querySchema), async (req, res, next) => {
-    try {
-      if (dbPool) {
-        const session = await getAuthenticatedSession(req, dbPool);
+  router.get("/app-shell", validateRequest("query", querySchema), requireVerifiedSession(dbPool), (req: Request, res: Response) => {
+    const session = req.auth!;
 
-        if (!session) {
-          throw new ApiError(401, "unauthenticated", "Sign in is required.");
-        }
-
-        if (!session.user.emailVerified) {
-          throw new ApiError(403, "email_unverified", "Email verification is required.");
-        }
-
-        res.json({
-          ...shellData,
-          currentUser: {
-            name: session.user.name ?? session.user.email,
-            email: session.user.email,
-            pictureUrl: session.user.pictureUrl,
-          },
-        });
-        return;
-      }
-
-      res.json(shellData);
-    } catch (error) {
-      next(error);
-    }
+    res.json({
+      ...shellData,
+      currentUser: {
+        name: session.user.name ?? session.user.email,
+        email: session.user.email,
+        pictureUrl: session.user.pictureUrl,
+      },
+    });
   });
 
   return router;

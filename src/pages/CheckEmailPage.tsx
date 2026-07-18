@@ -1,7 +1,9 @@
 import { MailCheck } from "lucide-react";
-import { apiClient } from "../api/client";
+import { useAuth } from "../state/AuthContext";
 
 export function CheckEmailPage() {
+  const { loginUrl } = useAuth();
+
   return (
     <main className="auth-page">
       <section className="auth-panel">
@@ -13,7 +15,7 @@ export function CheckEmailPage() {
         <p>
           Finish verification through the secure identity service. After your email is verified, return here to continue.
         </p>
-        <a className="button button--primary button--md" href={apiClient.getAuthRedirectUrl("login", "/")}>
+        <a className="button button--primary button--md" href={loginUrl}>
           Continue after verification
         </a>
       </section>
