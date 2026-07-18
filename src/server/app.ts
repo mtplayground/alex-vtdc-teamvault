@@ -6,6 +6,7 @@ import { errorHandler, notFound } from "./errors";
 import { createAppShellRouter } from "./routes/app-shell";
 import { createAuthRouter } from "./routes/auth";
 import { createHealthRouter } from "./routes/health";
+import { createWorkspacesRouter } from "./routes/workspaces";
 
 export function createApp() {
   const app = express();
@@ -37,6 +38,7 @@ export function createApp() {
   const apiRouter = express.Router();
   apiRouter.use(createHealthRouter(dbPool));
   apiRouter.use(createAuthRouter(dbPool));
+  apiRouter.use(createWorkspacesRouter(dbPool));
   apiRouter.use(createAppShellRouter(dbPool));
 
   app.use("/api", apiRouter);

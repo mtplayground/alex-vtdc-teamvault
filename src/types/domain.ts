@@ -34,9 +34,19 @@ export interface AppShellData {
     email: string;
     pictureUrl?: string | null;
   };
-  workspace: WorkspaceSummary;
+  workspace: WorkspaceSummary | null;
+  workspaces: WorkspaceSummary[];
   projects: ProjectSummary[];
   activity: ActivityItem[];
+}
+
+export interface WorkspaceListResponse {
+  workspaces: WorkspaceSummary[];
+}
+
+export interface CreateWorkspaceResponse {
+  workspaceId: string;
+  workspaces: WorkspaceSummary[];
 }
 
 export type SessionData =

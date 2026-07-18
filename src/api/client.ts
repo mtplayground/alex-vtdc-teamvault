@@ -1,4 +1,4 @@
-import type { AppShellData, SessionData } from "../types/domain";
+import type { AppShellData, CreateWorkspaceResponse, SessionData, WorkspaceListResponse } from "../types/domain";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -44,6 +44,16 @@ const shellPreviewData: AppShellData = {
     projectCount: 4,
     documentCount: 32,
   },
+  workspaces: [
+    {
+      id: "preview-workspace",
+      name: "Acme Legal Review",
+      role: "owner",
+      memberCount: 8,
+      projectCount: 4,
+      documentCount: 32,
+    },
+  ],
   projects: [
     {
       id: "project-1",
@@ -159,11 +169,45 @@ export const apiClient = {
     return request<{ authenticated: false; loginUrl: string }>("/auth/logout", { method: "POST" });
   },
 
-  async getAppShell(): Promise<AppShellData> {
+  async getAppShell(workspaceId?: string | null): Promise<AppShellData> {
     if (import.meta.env.DEV) {
       return shellPreviewData;
     }
 
-    return request<AppShellData>("/app-shell");
+    const query = workspaceId ? `?${new URLSearchParams({ workspaceId })}` : "";
+    return request<AppShellData>(`/app-shell${query}`);
+  },
+
+  async listWorkspaces(): Promise<WorkspaceListResponse> {
+    if (import.meta.env.DEV) {
+      return { workspaces: shellPreviewData.workspaces };
+    }
+
+    return request<WorkspaceListResponse>("/workspaces");
+  },
+
+  async createWorkspace(name: string): Promise<CreateWorkspaceResponse> {
+    if (import.meta.env.DEV) {
+      const workspaceId = crypto.randomUUID();
+      return {
+        workspaceId,
+        workspaces: [
+          {
+            id: workspaceId,
+            name,
+            role: "owner",
+            memberCount: 1,
+            projectCount: 0,
+            documentCount: 0,
+          },
+          ...shellPreviewData.workspaces,
+        ],
+      };
+    }
+
+    return request<CreateWorkspaceResponse>("/workspaces", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
   },
 };

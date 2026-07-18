@@ -12,7 +12,15 @@ const navItems = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function SideNav({ workspace }: { workspace: WorkspaceSummary }) {
+export function SideNav({
+  workspace,
+  workspaces,
+  onWorkspaceChange,
+}: {
+  workspace: WorkspaceSummary;
+  workspaces: WorkspaceSummary[];
+  onWorkspaceChange: (workspaceId: string) => void;
+}) {
   const { sidebarCollapsed } = useAppState();
 
   return (
@@ -26,6 +34,17 @@ export function SideNav({ workspace }: { workspace: WorkspaceSummary }) {
           <span>Secure workspace</span>
         </div>
       </div>
+
+      <label className="workspace-switcher">
+        <span>Workspace</span>
+        <select value={workspace.id} onChange={(event) => onWorkspaceChange(event.target.value)}>
+          {workspaces.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <nav className="side-nav__links" aria-label="Primary navigation">
         {navItems.map((item) => (

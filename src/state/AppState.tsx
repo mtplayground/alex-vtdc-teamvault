@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 
 interface AppStateValue {
   selectedWorkspaceId: string | null;
-  setSelectedWorkspaceId: (workspaceId: string) => void;
+  setSelectedWorkspaceId: (workspaceId: string | null) => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
 }
