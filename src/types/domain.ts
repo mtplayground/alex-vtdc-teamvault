@@ -60,6 +60,12 @@ export interface DocumentAccessResponse {
   disposition: "inline" | "attachment";
 }
 
+export interface ShareDocumentResponse {
+  recipientEmail: string;
+  projectAccessGranted: boolean;
+  emailStatus: "sent" | "skipped" | "rate_limited" | "failed";
+}
+
 export interface ActivityItem {
   id: string;
   actor: string;

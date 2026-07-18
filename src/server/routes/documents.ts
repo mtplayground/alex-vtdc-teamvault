@@ -6,6 +6,7 @@ import type {
   DocumentAccessResponse,
   DocumentListResponse,
   DocumentResponse,
+  ShareDocumentResponse,
   UploadDocumentResponse,
 } from "../../types/domain";
 import { requireWorkspacePermission } from "../auth/middleware";
@@ -15,6 +16,7 @@ import {
   getWorkspaceProjectDocument,
   listWorkspaceProjectDocuments,
   MAX_DOCUMENT_BYTES,
+  shareWorkspaceProjectDocument,
   uploadWorkspaceProjectDocument,
 } from "../services/documents";
 import { validateRequest } from "../validation";
@@ -26,6 +28,10 @@ const paramsSchema = z.object({
 
 const documentParamsSchema = paramsSchema.extend({
   documentId: z.string().uuid(),
+});
+
+const shareDocumentSchema = z.object({
+  email: z.string().trim().email(),
 });
 
 const upload = multer({
@@ -155,6 +161,30 @@ export function createDocumentsRouter(dbPool: Pool): Router {
           disposition: "attachment",
         });
         res.json(response);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/workspaces/:workspaceId/projects/:projectId/documents/:documentId/share",
+    validateRequest("params", documentParamsSchema),
+    ...requireWorkspacePermission(dbPool, "documents.organize", (req) => String(req.params.workspaceId)),
+    validateRequest("body", shareDocumentSchema),
+    async (req: Request, res: Response, next) => {
+      try {
+        const { projectId, documentId } = req.params as z.infer<typeof documentParamsSchema>;
+        const { email } = req.body as z.infer<typeof shareDocumentSchema>;
+        const response: ShareDocumentResponse = await shareWorkspaceProjectDocument(dbPool, {
+          membership: req.workspaceMembership!,
+          actorSub: req.auth!.user.sub,
+          actorName: req.auth!.user.name ?? req.auth!.user.email,
+          projectId,
+          documentId,
+          recipientEmail: email,
+        });
+        res.status(201).json(response);
       } catch (error) {
         next(error);
       }

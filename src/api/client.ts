@@ -12,6 +12,7 @@ import type {
   RosterResponse,
   Role,
   SessionData,
+  ShareDocumentResponse,
   UploadDocumentResponse,
   WorkspaceListResponse,
 } from "../types/domain";
@@ -552,6 +553,29 @@ export const apiClient = {
     return request<DocumentAccessResponse>(
       `/workspaces/${input.workspaceId}/projects/${input.projectId}/documents/${input.documentId}/download-url`,
       { method: "POST" },
+    );
+  },
+
+  async shareDocument(input: {
+    workspaceId: string;
+    projectId: string;
+    documentId: string;
+    email: string;
+  }): Promise<ShareDocumentResponse> {
+    if (import.meta.env.DEV) {
+      return {
+        recipientEmail: input.email,
+        projectAccessGranted: true,
+        emailStatus: "sent",
+      };
+    }
+
+    return request<ShareDocumentResponse>(
+      `/workspaces/${input.workspaceId}/projects/${input.projectId}/documents/${input.documentId}/share`,
+      {
+        method: "POST",
+        body: JSON.stringify({ email: input.email }),
+      },
     );
   },
 };
