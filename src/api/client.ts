@@ -107,8 +107,22 @@ const previewSessionData: SessionData = {
 };
 
 export const apiClient = {
-  getAuthRedirectUrl(mode: "login" | "register", returnTo = "/"): string {
+  getAuthRedirectUrl(mode: "login" | "register" | "password-reset", returnTo = "/"): string {
     return `${apiBaseUrl}/auth/${mode}?return_to=${encodeURIComponent(returnTo)}`;
+  },
+
+  async requestPasswordReset(email: string): Promise<{ status: "delegated"; loginUrl: string }> {
+    if (import.meta.env.DEV) {
+      return {
+        status: "delegated",
+        loginUrl: this.getAuthRedirectUrl("password-reset", "/reset-password/complete"),
+      };
+    }
+
+    return request<{ status: "delegated"; loginUrl: string }>("/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
   },
 
   async getSession(): Promise<SessionData> {

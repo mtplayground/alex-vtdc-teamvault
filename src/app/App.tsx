@@ -9,6 +9,8 @@ import { LoginPage } from "../pages/LoginPage";
 import { MembersPage } from "../pages/MembersPage";
 import { ProjectsPage } from "../pages/ProjectsPage";
 import { RegisterPage } from "../pages/RegisterPage";
+import { RequestPasswordResetPage } from "../pages/RequestPasswordResetPage";
+import { SetNewPasswordPage } from "../pages/SetNewPasswordPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { VerifiedPage } from "../pages/VerifiedPage";
 import { useAuth } from "../state/AuthContext";
@@ -26,6 +28,8 @@ export function App() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<RequestPasswordResetPage />} />
+        <Route path="/reset-password/complete" element={<SetNewPasswordPage />} />
         <Route path="/check-email" element={<CheckEmailPage />} />
         <Route path="/verified" element={<VerifiedPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
@@ -38,6 +42,8 @@ export function App() {
       <Routes>
         <Route path="/login" element={<Navigate to="/check-email" replace />} />
         <Route path="/register" element={<Navigate to="/check-email" replace />} />
+        <Route path="/reset-password" element={<RequestPasswordResetPage />} />
+        <Route path="/reset-password/complete" element={<SetNewPasswordPage />} />
         <Route path="/check-email" element={<CheckEmailPage />} />
         <Route path="/verified" element={<VerifiedPage />} />
         <Route path="*" element={<Navigate to="/check-email" replace />} />
@@ -51,6 +57,8 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/register" element={<Navigate to="/" replace />} />
+        <Route path="/reset-password" element={<RequestPasswordResetPage />} />
+        <Route path="/reset-password/complete" element={<SetNewPasswordPage />} />
         <Route path="/check-email" element={<Navigate to="/" replace />} />
         <Route path="/verified" element={<VerifiedPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
