@@ -15,8 +15,8 @@ export function createHealthRouter(dbPool: Pool): Router {
         environment: config.nodeEnv,
         database: "ok",
         storage: {
-          bucket: config.storage.bucket,
-          configured: true,
+          bucket: config.storage.bucket ?? null,
+          configured: config.storage.enabled,
         },
         email: {
           configured: config.email.enabled,

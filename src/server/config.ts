@@ -21,11 +21,11 @@ const envSchema = z.object({
   MCTAI_AUTH_JWKS_URL: z.string().url(),
   MCTAI_EMAIL_URL: optionalUrl,
   MCTAI_EMAIL_APP_TOKEN: z.string().optional(),
-  S3_ENDPOINT: z.string().url(),
-  S3_REGION: z.string().min(1),
-  S3_BUCKET: z.string().min(1),
-  S3_ACCESS_KEY_ID: z.string().min(1),
-  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  S3_ENDPOINT: optionalUrl,
+  S3_REGION: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   S3_FORCE_PATH_STYLE: booleanFromString,
 });
 
@@ -57,6 +57,13 @@ export const config = {
     enabled: Boolean(parsedEnv.data.MCTAI_EMAIL_URL && parsedEnv.data.MCTAI_EMAIL_APP_TOKEN),
   },
   storage: {
+    enabled: Boolean(
+      parsedEnv.data.S3_ENDPOINT &&
+        parsedEnv.data.S3_REGION &&
+        parsedEnv.data.S3_BUCKET &&
+        parsedEnv.data.S3_ACCESS_KEY_ID &&
+        parsedEnv.data.S3_SECRET_ACCESS_KEY,
+    ),
     endpoint: parsedEnv.data.S3_ENDPOINT,
     region: parsedEnv.data.S3_REGION,
     bucket: parsedEnv.data.S3_BUCKET,

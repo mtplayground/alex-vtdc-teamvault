@@ -28,7 +28,31 @@ export function createApp() {
   app.use((req, res, next) => {
     const origin = req.header("Origin");
 
-    if (origin && origin === config.corsOrigin) {
+    const publicHost = String(req.header("X-Forwarded-Host") ?? req.header("Host") ?? "")
+      .split(",")[0]
+      .trim()
+      .toLowerCase()
+      .replace(/:\d+$/, "");
+    let originHost: string | null = null;
+
+    if (origin) {
+      try {
+        originHost = new URL(origin).host.toLowerCase().replace(/:\d+$/, "");
+      } catch {
+        originHost = null;
+      }
+    }
+
+    const configuredHosts = [config.corsOrigin, config.selfUrl]
+      .map((value) => {
+        try {
+          return new URL(value).host.toLowerCase().replace(/:\d+$/, "");
+        } catch {
+          return value.toLowerCase().replace(/^https?:\/\//, "").replace(/:\d+$/, "");
+        }
+      });
+
+    if (origin && originHost && (originHost === publicHost || configuredHosts.includes(originHost))) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header("Access-Control-Allow-Credentials", "true");
       res.header("Vary", "Origin");

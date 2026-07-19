@@ -21,6 +21,12 @@ import { listUserWorkspaces } from "./workspaces";
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const DOCUMENT_ACCESS_SECONDS = 300;
 
+function requireDocumentStorage() {
+  if (!config.storage.enabled) {
+    throw new ApiError(503, "document_storage_unavailable", "Document storage is not configured for this deployment.");
+  }
+}
+
 const allowedContentTypes: Record<string, DocumentKind> = {
   "application/pdf": "pdf",
   "image/gif": "image",
@@ -141,6 +147,8 @@ export async function createWorkspaceProjectDocumentAccess(
     disposition: "inline" | "attachment";
   },
 ): Promise<DocumentAccessResponse> {
+  requireDocumentStorage();
+
   const project = await getProjectForWorkspace(dbPool, {
     workspaceId: input.membership.workspaceId,
     projectId: input.projectId,
@@ -299,6 +307,8 @@ export async function uploadWorkspaceProjectDocument(
     file: Express.Multer.File;
   },
 ): Promise<DocumentSummary> {
+  requireDocumentStorage();
+
   const project = await getProjectForWorkspace(dbPool, {
     workspaceId: input.membership.workspaceId,
     projectId: input.projectId,

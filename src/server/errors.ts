@@ -42,7 +42,14 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
-  console.error(error);
+  const err = error as { name?: string; code?: string; message?: string; stack?: string; $metadata?: { httpStatusCode?: number } };
+  console.error("[api error]", {
+    name: err?.name,
+    code: err?.code,
+    message: err?.message,
+    httpStatus: err?.$metadata?.httpStatusCode,
+    stack: err?.stack?.split("\n").slice(0, 5).join("\n"),
+  });
   res.status(500).json({
     error: {
       code: "internal_server_error",
